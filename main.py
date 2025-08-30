@@ -1,8 +1,3 @@
-"""I am accessing the EPA AQS API to get air quality data. Using Python and the requests library, 
-I will write a script that retrieves data from the API and processes it.
-I would like to get data for a specific pollutant (e.g., PM2.5) for a given date range and location (e.g., a specific city or state).
-I will also handle any potential errors that may arise during the API request.
-"""
 
 import requests
 import os
@@ -15,7 +10,7 @@ load_dotenv()
 def get_air_quality_data(pollutant=None, start_date=None, end_date=None):
     """Retrieve air quality data from the EPA AQS API."""
     base_url = "https://aqs.epa.gov/data/api/annualData/byCounty"  # Replace with actual API endpoint
-    email_address = os.getenv("EPA_EMAIL")  # Get email from environment variable
+    email_address = os.getenv("API_EMAIL")  # Get email from environment variable
     api_key = os.getenv("API_KEY")  # Get API key from environment variable
 
     if not api_key:
