@@ -21,6 +21,8 @@ To reset a key: If the request is made with an email that is already registered,
 
 ## API Examples
 
+Visit https://aqs.epa.gov/aqsweb/documents/data_api.html for more details.
+
 ### Sample List of States
 
 ```
