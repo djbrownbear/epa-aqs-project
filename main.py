@@ -1,8 +1,8 @@
-
 import requests
 import os
 from dotenv import load_dotenv
 from datetime import datetime as dt
+from utils import save_json_to_file, load_json_to_dataframe, load_data_section_to_dataframe, mask_api_key_and_email
 
 # Load environment variables from .env file
 load_dotenv()
@@ -66,4 +66,8 @@ if __name__ == "__main__":
     air_quality_data = get_air_quality_data(pollutant, start_date, end_date)
 
     if air_quality_data:
-        print("Air Quality Data:", air_quality_data)
+        air_quality_data = mask_api_key_and_email(air_quality_data)
+        save_json_to_file(air_quality_data)
+        df = load_data_section_to_dataframe()
+        print("DataFrame:")
+        print(df.head())
