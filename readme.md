@@ -19,6 +19,10 @@ Use this service to register as a user. A verification email will be sent to the
 
 To reset a key: If the request is made with an email that is already registered, a new key will be issued for that account and emailed to the listed address. Usage is the same as above.
 
+## Set up Environment Variables
+
+Update the .env.template file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
+
 ## API Examples
 
 Visit https://aqs.epa.gov/aqsweb/documents/data_api.html for more details.
