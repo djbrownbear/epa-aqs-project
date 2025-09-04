@@ -21,7 +21,19 @@ To reset a key: If the request is made with an email that is already registered,
 
 ## Set up Environment Variables
 
-Update the .env.template file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
+Update the **.env.template** file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
+
+## Install Dependencies 
+**NOTE: Virtual Environment recommended!**
+
+In the desired environment, run `pip install -r requirements.txt` to install the required dependencies.
+
+## Start the Dash/Plotly App
+`python run app.py`
+
+or 
+
+`python3 run app.py`
 
 ## API Examples
 
