@@ -1,0 +1,63 @@
+<head>
+    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
+</head>
+
+<body>
+    <div style="display:flex-row">
+
+        <h1>Plot1</h1>
+        <div id="plot1"></div>
+
+        <h2>Plot2</h2>
+        <div id="plot2"></div>
+
+    </div>
+
+
+    <script>
+
+        // API request parameters
+        const email = "test@aqs.api";
+        const key = "test";
+        const stateCode = "06"; // California
+        const countyCode = "075"; // San Francisco
+        const parameterCode = "88101"; // PM2.5
+        const bdate = "20230101";
+        const edate = "20230201";
+        // Build API URL
+        const url = `https://aqs.epa.gov/data/api/sampleData/byCounty?email=${email}&key=${key}&param=${parameterCode}&bdate=${bdate}&edate=${edate}&state=${stateCode}&county=${countyCode}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // Extract samples and combine date and time into a single datetime string
+                const samples = data.Data || [];
+                const dateTimes = samples.map(s => `${s.date_local} ${s.time_local}`);
+                const values = samples.map(s => s.sample_measurement);
+
+                // Update plot data using both date_local and time_local
+                Plotly.react("plot1", [{
+                    x: dateTimes,
+                    y: values,
+                    type: "scatter",
+                    mode: "lines",
+                    name: "PM2.5"
+                }], {
+                    title: { text: "PM2.5 Measurements" },
+                    xaxis: { title: { text: "Date and Time" } },
+                    yaxis: { title: { text: "PM2.5 (µg/m³)" } },
+                    autosize: true,
+                    height: 500
+                }, {
+                    displaylogo: false
+                });
+            })
+            .catch(err => {
+                console.error("API error:", err);
+            });
+        Plotly.newPlot("plot2", {
+            "data": [{ "y": [1, 2, 3] }],
+            "layout": { "width": 600, "height": 400 }
+        })
+    </script>
+</body>
