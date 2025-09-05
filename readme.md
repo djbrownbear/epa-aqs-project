@@ -3,6 +3,8 @@
 
 See the Sign Up section to register an email address for API access.
 
+Building with AI - check out the [`prompt.md`](https://github.com/djbrownbear/epa-aqs-project/blob/main/prompt.md) file to see the working prompts used to build the project. Some intervention was needed along the way and we did our best to document that. It is better to be simple and start small. Integrate each step of the prompt sequentially to reduce potential errors. Test and troubleshoot early and often.
+
 ## Sign Up
 
 This service creates an account or resets a password. Requires validation of registered email address. Email will be sent to the registered address from <aqsdatamart@epa.gov>.
