@@ -1,8 +1,15 @@
+<!-- 
+    This is an example that shows how Javascript, HTML, and CSS 
+    can be used with Plotly.js to generate real-time graphs using the EQS API.
+    To run this example, simply open this file in a web browser.
+-->
+
 <head>
     <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
 </head>
 
 <body>
+    <!-- HTML + CSS -->
     <div style="display:flex-row">
 
         <h1>Plot1</h1>
@@ -13,10 +20,11 @@
 
     </div>
 
-
+    <!-- JavaScript to fetch data from the API and plot it using Plotly.js -->
     <script>
 
         // API request parameters
+        // TODO: use a secure method to store and retrieve email and key in production code
         const email = "test@aqs.api";
         const key = "test";
         const stateCode = "06"; // California
