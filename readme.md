@@ -35,6 +35,12 @@ or
 
 `python3 run app.py`
 
+Now, in the browser you can view the Dash application.
+
+By default, the app will run locally at <http://127.0.0.1:8050/>
+
+NOTE: The sample data, `air_quality_data.json`, is pulled from the following date range 2020-01-02 to 2020-06-30 with California and Alameda County as the respective State and County filters.
+
 ## API Examples
 
 Visit https://aqs.epa.gov/aqsweb/documents/data_api.html for more details.
