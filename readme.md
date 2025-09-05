@@ -585,3 +585,15 @@ Visit https://aqs.epa.gov/aqsweb/documents/data_api.html for more details.
   ]
 }
 ```
+
+## Exploratory Data Analysis (EDA)
+
+A Juypter Notebook is available to explore within the `assets` directory.
+
+### Columns Available Within the Sample Dataset
+
+![alt text](assets\images\eda_columns_info.png)
+
+### Heatmap of Correlation Between Variables Within the Sample Dataset
+
+![alt text](assets\images\eda_example.png)
