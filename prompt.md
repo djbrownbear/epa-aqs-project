@@ -13,3 +13,16 @@ I am accessing the [EPA AQS API](https://aqs.epa.gov/data/api/) to get air quali
 - Here is an example of a test api call to retrieve annualData: "https://aqs.epa.gov/data/api/annualData/byCounty?email=test@aqs.api&key=test&param=88101,88502&bdate=20160101&edate=20160229&state=37&county=183"
 - Use an .env file to load the following environmental variables API_KEY and API_EMAIL. Note: this is used for best security practices.
 - Allow users to input a start date (bdate) and end date (edate) with the request. The format of dates must be YYYYMMDD. Create a helper function to convert the provided dates to the required format and handle cases where dates are separated by characters "-", "/", and "\".
+- Create a utility function to mask the api key and email address in the "url" within the "Header" response when saving air_quality_data to JSON. Here is a response example that needs to be masked:
+{
+  "Header": [
+    {
+      "status": "Success",
+      "request_time": "2025-08-30T03:44:49-04:00",
+      "url": "https://aqs.epa.gov/data/api/list/states?email=test@aqs.api&key=test",
+      "rows": 56
+    }
+  ],
+  "Data": []
+}
+- Now, create a simple frontend to visualize the data from the air_quality_data.json file. I am thinking of using Dash/Plotly, but am open to suggestions.

@@ -3,6 +3,8 @@ b
 
 See the Sign Up section to register an email address for API access.
 
+Building with AI - check out the [`prompt.md`](https://github.com/djbrownbear/epa-aqs-project/blob/main/prompt.md) file to see the working prompts used to build the project. Some intervention was needed along the way and we did our best to document that. It is better to be simple and start small. Integrate each step of the prompt sequentially to reduce potential errors. Test and troubleshoot early and often.
+
 ## Sign Up
 
 This service creates an account or resets a password. Requires validation of registered email address. Email will be sent to the registered address from <aqsdatamart@epa.gov>.
@@ -18,6 +20,29 @@ Use this service to register as a user. A verification email will be sent to the
 [https://aqs.epa.gov/data/api/signup?email=myemail@example.com](https://aqs.epa.gov/data/api/signup?email=myemail@example.com)
 
 To reset a key: If the request is made with an email that is already registered, a new key will be issued for that account and emailed to the listed address. Usage is the same as above.
+
+## Set up Environment Variables
+
+Update the **.env.template** file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
+
+## Install Dependencies 
+**NOTE: Virtual Environment recommended!**
+
+In the desired environment, run `pip install -r requirements.txt` to install the required dependencies.
+
+## Start the Dash/Plotly App
+`python app.py`
+
+or 
+
+`python3 app.py`
+
+Now, in the browser you can view the Dash application.
+
+By default, the app will run locally at <http://127.0.0.1:8050/>
+
+NOTE: The sample data, `air_quality_data.json`, is pulled from the following date range 2020-01-02 to 2020-06-30 with California and Alameda County as the respective State and County filters.
+
 
 ## API Examples
 
@@ -560,3 +585,15 @@ Visit https://aqs.epa.gov/aqsweb/documents/data_api.html for more details.
   ]
 }
 ```
+
+## Exploratory Data Analysis (EDA)
+
+A Juypter Notebook is available to explore within the `assets` directory.
+
+### Columns Available Within the Sample Dataset
+
+![alt text](assets/images/eda_columns_info.png)
+
+### Heatmap of Correlation Between Variables Within the Sample Dataset
+
+![alt text](assets/images/eda_example.png)
