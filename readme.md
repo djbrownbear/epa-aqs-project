@@ -15,25 +15,31 @@ This service creates an account or resets a password. Requires validation of reg
 
 **Examples:**
 
-Use this service to register as a user. A verification email will be sent to the email account specified. To register using the email address "<myemail@example.com>" create and request this link (**Replace `"myemail@example.com"` in the example with your email address.**):
+Use this service to register as a user. A verification email will be sent to the email account specified. To register using the email address "<myemail@example.com>" create and request this link:
 
-[https://aqs.epa.gov/data/api/signup?email=myemail@example.com](https://aqs.epa.gov/data/api/signup?email=myemail@example.com)
+> [!TIP]
+> **Replace `"myemail@example.com"` in the example with your email address.**
+> https://aqs.epa.gov/data/api/signup?email=myemail@example.com
 
 To reset a key: If the request is made with an email that is already registered, a new key will be issued for that account and emailed to the listed address. Usage is the same as above.
 
 ## Set up Environment Variables
 
-Update the **.env.template** file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
+> [!IMPORTANT]
+> Update the **.env.template** file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
 
-## Install Dependencies 
-**NOTE: Virtual Environment recommended!**
+## Install Dependencies
+
+> [!NOTE]
+> Using a virtual environment is recommended!
 
 In the desired environment, run `pip install -r requirements.txt` to install the required dependencies.
 
 ## Start the Dash/Plotly App
+
 `python app.py`
 
-or 
+or
 
 `python3 app.py`
 
