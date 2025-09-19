@@ -7,9 +7,19 @@ from utils import save_json_to_file, load_json_to_dataframe, mask_api_key_and_em
 # Load environment variables from .env file
 load_dotenv()
 
-def get_air_quality_data(pollutant=None, start_date=None, end_date=None):
+pollutants = {
+    "Carbon Monoxide": 42101,
+    "Lead PM10": 81102,
+    "PM2.5": 88101,
+    "Ozone": 44201,
+    "Nitrogen Dioxide": 42602,
+    "Sulfur Dioxide": 42401,
+    "PM10": 81101
+}
+
+def get_air_quality_data(pollutant=None, start_date=None, end_date=None, args=None, **kwargs):
     """Retrieve air quality data from the EPA AQS API."""
-    base_url = "https://aqs.epa.gov/data/api/annualData/byCounty"  # Replace with actual API endpoint
+    base_url = kwargs.get("base_url", "https://aqs.epa.gov/data/api/annualData/byCounty") # Replace with actual API endpoint
     email_address = os.getenv("API_EMAIL")  # Get email from environment variable
     api_key = os.getenv("API_KEY")  # Get API key from environment variable
 
@@ -20,10 +30,10 @@ def get_air_quality_data(pollutant=None, start_date=None, end_date=None):
         "email": email_address,
         "key": api_key,
         "param": pollutant,
-        "state": "06", # California
-        "county": "001", # Alameda County
         "bdate": format_date_to_yyyymmdd(start_date),
         "edate": format_date_to_yyyymmdd(end_date),
+        "state": "06", # California
+        "county": "001" # Alameda County
     }
 
     try:
@@ -58,16 +68,30 @@ def format_date_to_yyyymmdd(date_str):
     return date_obj.strftime("%Y%m%d")
 
 if __name__ == "__main__":
-    # Example usage
-    pollutant = 88101  # PM2.5
+
+    # Select pollutant(s) to pull data for
+    print("Available pollutants:")
+    for name, code in pollutants.items():
+        print(f"{name}: {code}")
+
+    selected_name = input("Enter pollutant name from the list above: ")
+    pollutant = pollutants.get(selected_name)
+    if pollutant is None:
+        print("Invalid pollutant name. Please choose from the list.")
+        exit(1)
+
     start_date = input("Enter start date (YYYY-MM-DD or MM-DD-YYYY): ")
     end_date = input("Enter end date (YYYY-MM-DD or MM-DD-YYYY): ")
 
+    base_url: str = "https://aqs.epa.gov/data/api/dailyData/byCounty"
+
     air_quality_data = get_air_quality_data(pollutant, start_date, end_date)
+
+    filename = f"output_{pollutant}_{start_date}_to_{end_date}.json"
 
     if air_quality_data:
         air_quality_data = mask_api_key_and_email(air_quality_data)
-        save_json_to_file(air_quality_data)
-        df = load_json_to_dataframe(record_path="Data")
+        save_json_to_file(air_quality_data, filename=filename)
+        df = load_json_to_dataframe(filename=filename, record_path="Data")
         print("DataFrame:")
         print(df.head())

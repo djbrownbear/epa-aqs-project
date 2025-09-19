@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import re
+from datetime import datetime as dt
 
 def save_json_to_file(data, filename="air_quality_data.json"):
     """Save JSON data to a file."""
@@ -23,3 +24,22 @@ def mask_api_key_and_email(data):
                 # Mask the email address
                 header["url"] = re.sub(r"(email=)[^&]+", r"\1*****", header["url"])
     return data
+
+def format_date_to_yyyymmdd(date_str):
+    """Convert a date string to the format 'YYYYMMDD'.
+    Accepts formats like 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.
+    """
+    try:
+        # Replace '/' or '\\' with '-' for uniformity
+        normalized_date_str = date_str.replace("/", "-").replace("\\", "-")
+
+        # Try parsing as 'YYYY-MM-DD'
+        date_obj = dt.strptime(normalized_date_str, "%Y-%m-%d")
+    except ValueError:
+        try:
+            # Try parsing as 'MM-DD-YYYY'
+            date_obj = dt.strptime(normalized_date_str, "%m-%d-%Y")
+        except ValueError:
+            raise ValueError("Date format must be 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.")
+
+    return date_obj.strftime("%Y%m%d")
