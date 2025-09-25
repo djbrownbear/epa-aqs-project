@@ -23,31 +23,12 @@ Use this service to register as a user. A verification email will be sent to the
 
 To reset a key: If the request is made with an email that is already registered, a new key will be issued for that account and emailed to the listed address. Usage is the same as above.
 
-## Set up Environment Variables
+## Choose Your Development Language
 
-> [!IMPORTANT]
-> Update the **.env.template** file with the details generated from registering for API access, `API_KEY` & `API_EMAIL`. Save the updated file as .env (remove the .template).
+Check out the respective READMEs to get started using the following languages:
 
-## Install Dependencies
-
-> [!NOTE]
-> Using a virtual environment is recommended!
-
-In the desired environment, run `pip install -r requirements.txt` to install the required dependencies.
-
-## Start the Dash/Plotly App
-
-`python app.py`
-
-or
-
-`python3 app.py`
-
-Now, in the browser you can view the Dash application.
-
-By default, the app will run locally at <http://127.0.0.1:8050/>
-
-NOTE: The sample data, `air_quality_data.json`, is pulled from the following date range 2020-01-02 to 2020-06-30 with California and Alameda County as the respective State and County filters.
+- [Python](https://github.com/djbrownbear/epa-aqs-project/blob/main/prompt.md)
+- [R](https://github.com/djbrownbear/epa-aqs-project/blob/main/prompt.md)
 
 
 ## API Examples
