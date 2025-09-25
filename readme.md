@@ -27,8 +27,8 @@ To reset a key: If the request is made with an email that is already registered,
 
 Check out the respective READMEs to get started using the following languages:
 
-- [Python](https://github.com/djbrownbear/epa-aqs-project/blob/main/prompt.md)
-- [R](https://github.com/djbrownbear/epa-aqs-project/blob/main/prompt.md)
+- [Python](https://github.com/djbrownbear/epa-aqs-project/blob/main/python/readme.md)
+- [R](https://github.com/djbrownbear/epa-aqs-project/blob/main/R/readme.md)
 
 
 ## API Examples
