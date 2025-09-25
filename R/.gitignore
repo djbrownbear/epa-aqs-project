@@ -1,0 +1,40 @@
+# Environment Variables - FOR SECURITY
+.Renviron
+
+# RStudio project files
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# R package build files
+.Rbuildignore
+.Rinstignore
+*.tar.gz
+*.zip
+*.Rcheck/
+
+# R session and data files
+*.rds
+*.Rds
+*.rda
+*.Rda
+*.fst
+*.feather
+*.parquet
+*.qs
+
+# R temporary and cache files
+.httr-oauth
+.DS_Store
+Thumbs.db
+renv/library/
+renv/activate.R
+renv/settings.json
+renv.lock
+
+# Output directories (adjust as needed)
+/data/processed/
+/results/
+/figures/
+/docs/
