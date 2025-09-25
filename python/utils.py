@@ -3,12 +3,12 @@ import pandas as pd
 import re
 from datetime import datetime as dt
 
-def save_json_to_file(data, filename="air_quality_data.json"):
+def save_json_to_file(data, filename="../assets/air_quality_data.json"):
     """Save JSON data to a file."""
     with open(filename, "w") as file:
         json.dump(data, file, indent=4)
 
-def load_json_to_dataframe(filename="air_quality_data.json", record_path=None):
+def load_json_to_dataframe(filename="../assets/air_quality_data.json", record_path=None):
     """Load JSON data from a file into a Pandas DataFrame."""
     with open(filename, "r") as file:
         data = json.load(file)

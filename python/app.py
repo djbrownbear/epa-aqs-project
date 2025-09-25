@@ -4,9 +4,14 @@ from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
 import json
+import os
 
-# Load data from air_quality_data.json
-with open("air_quality_data.json", "r") as file:
+# added to handle relative path for JSON file
+# replace with your desired file path
+filename = os.path.join(os.path.dirname(__file__), "..", "assets", "air_quality_data.json")
+
+# Load data from specified JSON file
+with open(filename, "r") as file:
     data = json.load(file)
 
 # Extract the 'Data' section into a DataFrame

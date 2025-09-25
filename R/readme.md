@@ -30,7 +30,7 @@ install.packages("tidyr")
 ## Sample Data
 
 > [!NOTE]
-> The sample data, `air_quality_data.json`, is pulled from the following date range 2020-01-02 to 2020-06-30 with California and Alameda County as the respective State and County filters.
+> The sample data, `air_quality_data.json`, is pulled from the following date range 2019-01-01 to 2019-12-31 with California and Alameda County as the respective State and County filters.
 
 ## Troubleshooting
 
