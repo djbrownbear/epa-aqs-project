@@ -50,12 +50,16 @@ def get_air_quality_data(
         raise ValueError("API_EMAIL and API_KEY must be set.")
 
     # Validate required parameters
-    if not param or not state or not county or not bdate or not edate:
-        raise ValueError("param, state, county, bdate, and edate are required.")
+    if not param or not state or not bdate or not edate:
+        raise ValueError("param, state, bdate, and edate are required.")
+    if by in ("byCounty", "bySite") and not county:
+        raise ValueError("county is required for byCounty or bySite endpoints.")
 
     # Format FIPS codes
     state = str(state).zfill(2)
-    county = str(county).zfill(3)
+
+    if county is not None:
+        county = str(county).zfill(3)
 
     # Format parameter codes (comma-separated string)
     if isinstance(param, (list, tuple)):
@@ -78,15 +82,19 @@ def get_air_quality_data(
         "param": param,
         "state": state,
         "county": county,
+        # Determine if 'county' should be included based on the endpoint
+        # Endpoints that require 'county' typically have '/byCounty' in the URL
         "bdate": bdate,
         "edate": edate,
     }
     params.update(kwargs)  # Add any extra params
 
-    # Make the request
     response = requests.get(endpoint, params=params)
     try:
         response.raise_for_status()
+        print("DEBUG: API request URL:", response.url)
+        if "/byCounty" in base_url or "/bySite" in base_url:
+            params["county"] = county  # Include county only if required
         return response.json()
     except requests.HTTPError as e:
         print("HTTP error:", e)
@@ -117,7 +125,10 @@ if __name__ == "__main__":
     service = input("Enter service (e.g., annualData, dailyData, sampleData): ").strip() or "annualData"
     by = input("Enter 'by' (e.g., byCounty, byState, bySite): ").strip() or "byCounty"
     state = input("Enter state FIPS code (2 digits, e.g., 06): ").zfill(2)
-    county = input("Enter county FIPS code (3 digits, e.g., 001): ").zfill(3)
+
+    county = None
+    if by in ("byCounty", "bySite"):
+        county = input("Enter county FIPS code (3 digits, e.g., 001): ").zfill(3)
 
     print("Select pollutant(s) by number (comma-separated for multiple):")
     for idx, (name, code) in enumerate(pollutants, 1):
@@ -132,17 +143,14 @@ if __name__ == "__main__":
     bdate = input("Enter begin date (YYYYMMDD): ")
     edate = input("Enter end date (YYYYMMDD): ")
 
-    air_quality_data = get_air_quality_data(
-        service=service,
-        by=by,
-        state=state,
-        county=county,
-        param=param,
-        bdate=bdate,
-        edate=edate
-    )
+    # Build argument dictionary
+    aq_args = dict(service=service, by=by, state=state, param=param, bdate=bdate, edate=edate)
+    if county is not None:
+        aq_args["county"] = county
 
-    filename = f"output_{param}_{bdate}_to_{edate}.json"
+    air_quality_data = get_air_quality_data(**aq_args)
+
+    filename = f"{service}_{by}_{param}_{bdate}_to_{edate}.json"
 
     if air_quality_data:
         air_quality_data = mask_api_key_and_email(air_quality_data)
