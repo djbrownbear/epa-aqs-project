@@ -16,8 +16,7 @@ call_aqs_service <- function(service, aggregation, ..., return_header = TRUE) {
   args <- list(...)
 
   if (grepl("by_county", aggregation)) {
-    county <-
-      readline(prompt = "Enter county FIPS code (3 digits, e.g., 001): ")
+    county <- readline(prompt = "Enter county FIPS code (3 digits, e.g., 001): ")
     county <- sprintf("%03s", county)
     args$countycode <- county
   }
