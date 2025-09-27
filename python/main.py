@@ -86,7 +86,7 @@ def get_air_quality_data(
         "edate": edate,
     }
 
-    if "/byCounty" in by or "/bySite" in by:
+    if by in ("byCounty", "bySite"):
         params["county"] = county  # Include county only if required
     params.update(kwargs)  # Add any extra params
 
