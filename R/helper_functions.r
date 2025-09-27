@@ -2,7 +2,7 @@ call_aqs_service <- function(service, aggregation, ..., return_header = TRUE) {
   # service: e.g. "annualsummary", "dailysummary", "sampledata", etc.
   # aggregation: e.g. "by_county", "by_state", "by_site", etc.
   # ...: named arguments for the API call (parameter, bdate, edate, stateFIPS, etc.)
-  # .return_header: whether to return the header (default TRUE)
+  # return_header: whether to return the header (default TRUE)
 
   # Build the function name
   fn_name <- paste0("aqs_", service, "_", aggregation)
