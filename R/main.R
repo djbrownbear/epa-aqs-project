@@ -5,15 +5,16 @@ library(RAQSAPI)
 library(lubridate)
 library(jsonlite)
 
-# Define pollutants
+# Pollutant options (single source of truth)
 pollutants <- list(
-  "Carbon Monoxide" = 42101,
-  "Lead PM10" = 81102,
-  "PM2.5" = 88101,
-    "Ozone" = 44201,
-  "Nitrogen Dioxide" = 42602,
-  "Sulfur Dioxide" = 42401,
-  "PM10" = 81101
+  "Lead (TSP) LC" = 14129,
+  "Carbon monoxide" = 42101,
+  "Sulfur dioxide" = 42401,
+  "Nitrogen dioxide (NO2)" = 42602,
+  "Ozone" = 44201,
+  "PM10 Total 0-10um STP" = 81102,
+  "Lead PM10 LC FRM/FEM" = 85129,
+  "PM2.5 - Local Conditions" = 88101
 )
 
 # REMINDER FOR FIRST TIME USE!
