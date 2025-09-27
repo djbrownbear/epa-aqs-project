@@ -22,9 +22,6 @@ pollutants <- list(
 API_EMAIL = Sys.getenv("API_EMAIL")
 API_KEY = Sys.getenv("API_KEY")
 
-print(API_EMAIL)
-print(API_KEY)
-
 # Function to format date to YYYYMMDD
 format_date_to_yyyymmdd <- function(date_str) {
   # Accepts YYYYMMDD, YYYY-MM-DD, MM-DD-YYYY, YYYY/MM/DD, MM/DD/YYYY
@@ -79,10 +76,10 @@ if (length(selected_idxs) == 0) {
 }
 param <- as.character(unname(unlist(pollutants[selected_idxs])))
 
-bdate <- readline(prompt = "Enter begin date (YYYY-MM-DD or MM-DD-YYYY): ")
-edate <- readline(prompt = "Enter end date (YYYY-MM-DD or MM-DD-YYYY): ")
-bdate <- format_date_to_yyyymmdd(bdate)
-edate <- format_date_to_yyyymmdd(edate)
+bdate <- readline(prompt = "Enter begin date (YYYYMMDD): ")
+edate <- readline(prompt = "Enter end date (YYYYMMDD): ")
+bdate <- as.Date(format_date_to_yyyymmdd(bdate),format='%Y%m%d')
+edate <- as.Date(format_date_to_yyyymmdd(edate),format='%Y%m%d')
 
 result <- call_aqs_service(
   service = service,
