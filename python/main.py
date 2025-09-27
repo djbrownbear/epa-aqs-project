@@ -82,20 +82,17 @@ def get_air_quality_data(
         "key": api_key,
         "param": param,
         "state": state,
-        "county": county,
-        # Determine if 'county' should be included based on the endpoint
-        # Endpoints that require 'county' typically have '/byCounty' in the URL
         "bdate": bdate,
         "edate": edate,
     }
+
+    if "/byCounty" in by or "/bySite" in by:
+        params["county"] = county  # Include county only if required
     params.update(kwargs)  # Add any extra params
 
     response = requests.get(endpoint, params=params)
     try:
         response.raise_for_status()
-        print("DEBUG: API request URL:", response.url)
-        if "/byCounty" in base_url or "/bySite" in base_url:
-            params["county"] = county  # Include county only if required
         return response.json()
     except requests.HTTPError as e:
         print("HTTP error:", e)
