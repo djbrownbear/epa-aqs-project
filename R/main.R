@@ -81,8 +81,8 @@ param <- as.character(unname(unlist(pollutants[selected_idxs])))
 
 bdate <- readline(prompt = "Enter begin date (YYYY-MM-DD or MM-DD-YYYY): ")
 edate <- readline(prompt = "Enter end date (YYYY-MM-DD or MM-DD-YYYY): ")
-bdate <- as.Date(format_date_to_yyyymmdd(bdate),format='%Y%m%d')
-edate <- as.Date(format_date_to_yyyymmdd(edate),format='%Y%m%d')
+bdate <- format_date_to_yyyymmdd(bdate)
+edate <- format_date_to_yyyymmdd(edate)
 
 result <- call_aqs_service(
   service = service,
