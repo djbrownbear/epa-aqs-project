@@ -111,4 +111,4 @@ if (!is.null(result$Header) && !is.null(result$Data)) {
 
 cat("DataFrame head:\n")
 print(head(result))
-cat("Script completed\\n\n")
+cat("Script completed\n")
