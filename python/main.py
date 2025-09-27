@@ -132,7 +132,13 @@ if __name__ == "__main__":
     for idx, (name, code) in enumerate(pollutants, 1):
         print(f"  {idx}. {name} ({code})")
     selected = input("Enter your choice(s): ")
-    selected_idxs = [int(s.strip()) for s in selected.split(",") if s.strip().isdigit() and 1 <= int(s.strip()) <= len(pollutants)]
+    selected_idxs = []
+    for s in selected.split(","):
+        stripped = s.strip()
+        if stripped.isdigit():
+            idx = int(stripped)
+            if 1 <= idx <= len(pollutants):
+                selected_idxs.append(idx)
     if not selected_idxs:
         print("Invalid selection. Exiting.")
         exit(1)
