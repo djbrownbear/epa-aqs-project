@@ -94,7 +94,8 @@ result <- call_aqs_service(
   return_header = FALSE
 )
 
-filename <- paste0(service,"_", aggregation, "_", param,"_", bdate,"_", edate,".json")
+param_safe <- gsub(",", "_", param)
+filename <- paste0(service,"_", aggregation, "_", param_safe,"_", bdate,"_", edate,".json")
 
 # Dynamically handle saving based on presence of Header and Data
 if (!is.null(result$Header) && !is.null(result$Data)) {
