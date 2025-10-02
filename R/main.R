@@ -17,6 +17,33 @@ pollutants <- list(
   "PM2.5 - Local Conditions" = 88101
 )
 
+aggregation_list <- list(
+"by site" = "by_site",
+"by county" = "by_county",
+"by state" = "by_state",
+"by box" = "by_box",
+"by monitoring agency" = "by_MA",
+"by quality assurance organization" = "by_pqao",
+"by core statistical area" = "by_cbsa"
+)
+
+services_list <- list(
+  "Monitors" = "monitors",
+  "Sample Data" = "sampledata",
+  "Daily Summary Data" = "dailysummary",
+  "Annual Summary Data" = "annualsummary",
+  "Quarterly Summary Data" = "quarterlysummary",
+  "Quality Assurance - Blanks Data" = "qa_blanks",
+  "Quality Assurance - Collocated Assessments" = "qa_collocated_assessments",
+  "Quality Assurance - Flow Rate Verifications" = "qa_flowrateverification",
+  "Quality Assurance - Flow Rate Audits" = "qa_flowrateaudit",
+  "Quality Assurance - One Point Quality Control Raw Data" = "qa_one_point_qc",
+  "Quality Assurance - PEP Audits" = "qa_pep_audit",
+  "Transaction Sample - AQS Submission data in transaction Format (RD)" = "transactionsample",
+  "Quality Assurance - Annual Performance Evaluations" = "qa_annualperformanceeval",
+  "Quality Assurance - Annual Performance Evaluations in the AQS Submission transaction format (RD)" = "qa_annualperformanceevaltransaction"
+)
+
 # REMINDER FOR FIRST TIME USE!
 # You need to edit the .Renvrion file and add the relevant information
 API_EMAIL = Sys.getenv("API_EMAIL")
@@ -56,14 +83,15 @@ cat("EPA AQS Data Download\n")
 # Set credentials for RAQSAPI
 aqs_credentials(username = Sys.getenv("API_EMAIL"), key = Sys.getenv("API_KEY"))
 
-service <- readline(prompt = "Enter service (e.g., annualsummary, dailysummary, sampledata, etc.): ")
-aggregation <- readline(prompt = "Enter 'by' (e.g., by_county, by_state, by_site, etc.): ")
+service <- select_one_option(services_list, "Select a service:")
+aggregation <- select_one_option(aggregation_list, "Select aggregation type: ")
 
 state <- readline(prompt = "Enter state FIPS code (2 digits, e.g., 06): ")
 state <- sprintf("%02s", state)
 
 # Pollutant selection
-cat("Select pollutant(s) by number (comma-separated for multiple):\n")
+# TODO - fix to allow multiple parameters
+cat("Select pollutant(s) by number:\n")
 pollutant_names <- names(pollutants)
 for (i in seq_along(pollutant_names)) {
   cat(sprintf("  %d. %s (%d)\n", i, pollutant_names[i], pollutants[[i]]))

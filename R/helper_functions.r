@@ -36,3 +36,17 @@ call_aqs_service <- function(service, aggregation, ..., return_header = TRUE) {
 #   edate = "20191231",
 #   stateFIPS = "06",
 # )
+
+select_one_option <- function(options, prompt_text = "Select one option by number:") {
+  cat(prompt_text, "\n")
+  options_names <- names(options)
+  for (i in seq_along(options)) {
+    cat(sprintf("  %d. %s\n", i, options_names[i]))
+  }
+  selected <- readline(prompt = "Enter your choice: ")
+  selected_idx <- as.integer(selected)
+  if (is.na(selected_idx) || selected_idx < 1 || selected_idx > length(options)) {
+    stop("Invalid selection. Exiting.")
+  }
+  return(options[[selected_idx]])
+}
