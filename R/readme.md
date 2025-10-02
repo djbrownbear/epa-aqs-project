@@ -12,11 +12,9 @@ To install the required libraries for this RStudio project, run the following in
 
 ```r
 install.packages(c(
-	"httr",
-	"jsonlite",
-	"readr",
-	"dplyr",
-	"lubridate"
+	"RAQSAPI",
+ 	"lubridate",
+	"jsonlite"
 ))
 ```
 
