@@ -49,6 +49,11 @@ services_list <- list(
 API_EMAIL = Sys.getenv("API_EMAIL")
 API_KEY = Sys.getenv("API_KEY")
 
+# Check to prevent API calls if user credentials are not found
+if (nchar(API_EMAIL) == 0 || nchar(API_KEY) == 0) {
+  stop("Credentials not found - please check your .Renviron file")
+}
+
 # Function to save JSON to file
 save_json_to_file <- function(data, filename) {
   write_json(data, filename, pretty = TRUE, auto_unbox = TRUE)
@@ -147,6 +152,5 @@ if (use_user_settings=="y"){
 }
 
 saveRDS(user_settings, "user_settings.rds")
-
 
 cat("Script completed\n")
