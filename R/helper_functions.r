@@ -50,3 +50,70 @@ select_one_option <- function(options, prompt_text = "Select one option by numbe
   }
   return(options[[selected_idx]])
 }
+
+select_multiple_options <- function(options, prompt_text) {
+  cat(prompt_text, "\n")
+  option_names <- names(options)
+  for (i in seq_along(option_names)) {
+    cat(sprintf("  %d. %s (%s)\n", i, option_names[i], options[[i]]))
+  }
+  selected <- readline("Enter your choice(s) (comma-separated): ")
+  selected_idxs <- as.integer(unlist(strsplit(selected, ",")))
+  selected_idxs <- selected_idxs[!is.na(selected_idxs) & selected_idxs >= 1 & selected_idxs <= length(options)]
+  if (length(selected_idxs) == 0) stop("Invalid selection. Exiting.")
+  as.character(unname(unlist(options[selected_idxs])))
+}
+
+build_aqs_args <- function(service, aggregation, param, bdate, edate, state, county = NULL) {
+  args <- list(
+    service = service,
+    aggregation = aggregation,
+    parameter = param,
+    bdate = bdate,
+    edate = edate,
+    stateFIPS = state
+  )
+  if (aggregation %in% c("by_county", "by_site") && !is.null(county)) {
+    args$countycode <- county
+  }
+  args
+}
+
+build_args_from_settings <- function(user_settings, bdate = NULL, edate = NULL) {
+  args <- list(
+    service = user_settings$service,
+    aggregation = user_settings$aggregation,
+    parameter = user_settings$parameter,
+    bdate = if (!is.null(bdate)) bdate else user_settings$bdate,
+    edate = if (!is.null(edate)) edate else user_settings$edate,
+    stateFIPS = user_settings$stateFIPS
+  )
+  if (!is.null(user_settings$county) && user_settings$aggregation %in% c("by_county", "by_site")) {
+    args$countycode <- user_settings$county
+  }
+  args
+}
+
+mask_query_params <- function(url, params, mask = "**MASKED**") {
+    for (param in params) {
+      # Regex: lookbehind for "param=" then replace until next "&" or end
+      pattern <- paste0("(?<=", param, "=)[^&]+")
+      url <- gsub(pattern, mask, url, perl = TRUE)
+    }
+    return(url)
+}
+
+# Function to format date to YYYYMMDD
+format_date_to_yyyymmdd <- function(date_str) {
+  # Accepts YYYYMMDD, YYYY-MM-DD, MM-DD-YYYY, YYYY/MM/DD, MM/DD/YYYY
+  date_str <- gsub("/|\\\\", "-", date_str)
+  # If already 8 digits, assume it's YYYYMMDD
+  if (grepl("^\\d{8}$", date_str)) {
+    return(date_str)
+  }
+  # Try parsing as YYYY-MM-DD or MM-DD-YYYY
+  date_obj <- suppressWarnings(ymd(date_str))
+  if (is.na(date_obj)) date_obj <- suppressWarnings(mdy(date_str))
+  if (is.na(date_obj)) stop("Date format must be 'YYYYMMDD', 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.")
+  format(date_obj, "%Y%m%d")
+}
