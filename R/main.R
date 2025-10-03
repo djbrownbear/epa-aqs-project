@@ -49,29 +49,6 @@ services_list <- list(
 API_EMAIL = Sys.getenv("API_EMAIL")
 API_KEY = Sys.getenv("API_KEY")
 
-# Function to format date to YYYYMMDD
-format_date_to_yyyymmdd <- function(date_str) {
-  # Accepts YYYYMMDD, YYYY-MM-DD, MM-DD-YYYY, YYYY/MM/DD, MM/DD/YYYY
-  date_str <- gsub("/|\\\\", "-", date_str)
-  # If already 8 digits, assume it's YYYYMMDD
-  if (grepl("^\\d{8}$", date_str)) {
-    return(date_str)
-  }
-  # Try parsing as YYYY-MM-DD or MM-DD-YYYY
-  date_obj <- suppressWarnings(ymd(date_str))
-  if (is.na(date_obj)) date_obj <- suppressWarnings(mdy(date_str))
-  if (is.na(date_obj)) stop("Date format must be 'YYYYMMDD', 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.")
-  format(date_obj, "%Y%m%d")
-}
-
-# Function to mask API key and email in data
-# NOT necessary if return_header = FALSE
-mask_api_key_and_email <- function(data) {
-  if (!is.null(data$Header$url$key)) data$Header$url$key <- "***MASKED***"
-  if (!is.null(data$Header$url$email)) data$Header$url$email <- "***MASKED***"
-  return(data)
-}
-
 # Function to save JSON to file
 save_json_to_file <- function(data, filename) {
   write_json(data, filename, pretty = TRUE, auto_unbox = TRUE)
@@ -80,53 +57,69 @@ save_json_to_file <- function(data, filename) {
 # Main script
 cat("EPA AQS Data Download\n")
 
+use_user_settings <- readline(prompt = "Use the existing user settings? (y or n)")
+
 # Set credentials for RAQSAPI
 aqs_credentials(username = Sys.getenv("API_EMAIL"), key = Sys.getenv("API_KEY"))
 
-service <- select_one_option(services_list, "Select a service:")
-aggregation <- select_one_option(aggregation_list, "Select aggregation type: ")
+if (use_user_settings == "y"){
+  if (!exists("user_settings")) user_settings <- readRDS("user_settings.rds")
+  # Prompt for new dates
+  new_bdate <- as.Date(format_date_to_yyyymmdd(readline("Enter new begin date (YYYYMMDD): ")), "%Y%m%d")
+  new_edate <- as.Date(format_date_to_yyyymmdd(readline("Enter new end date (YYYYMMDD): ")), "%Y%m%d")
 
-state <- readline(prompt = "Enter state FIPS code (2 digits, e.g., 06): ")
-state <- sprintf("%02s", state)
+  args <- build_args_from_settings(user_settings, bdate = new_bdate, edate = new_edate)
+  # Use args for filename construction
+  param_safe <- gsub(",", "_", args$parameter)
+  bdate_str <- format(args$bdate, "%Y%m%d")
+  edate_str <- format(args$edate, "%Y%m%d")
+  filename <- paste0(args$service, "_", args$aggregation, "_", param_safe, "_", bdate_str, "_", edate_str, ".json")
+} else {
+  service <- select_one_option(services_list, "Select a service:")
+  aggregation <- select_one_option(aggregation_list, "Select aggregation type: ")
 
-# Pollutant selection
-# TODO - fix to allow multiple parameters
-cat("Select pollutant(s) by number:\n")
-pollutant_names <- names(pollutants)
-for (i in seq_along(pollutant_names)) {
-  cat(sprintf("  %d. %s (%d)\n", i, pollutant_names[i], pollutants[[i]]))
+  state <- readline(prompt = "Enter state FIPS code (2 digits, e.g., 06): ")
+  state <- sprintf("%02s", state)
+
+  county <- NULL
+
+  if (aggregation %in% c("by_county", "by_site")) {
+    county <- readline(prompt = "Enter county FIPS code (3 digits, e.g., 001): ")
+    county <- sprintf("%03s", county)
+  }
+
+  # Pollutant selection
+  # TODO - fix to allow multiple parameters
+  param <- select_multiple_options(pollutants, "Select pollutant(s) by number:")
+
+  bdate <- readline(prompt = "Enter begin date (YYYYMMDD): ")
+  edate <- readline(prompt = "Enter end date (YYYYMMDD): ")
+  bdate <- as.Date(format_date_to_yyyymmdd(bdate), format = "%Y%m%d")
+  edate <- as.Date(format_date_to_yyyymmdd(edate), format = "%Y%m%d")
+
+  args <- build_aqs_args(
+    service,
+    aggregation,
+    param,
+    bdate,
+    edate,
+    state,
+    county
+  )
+  param_safe <- gsub(",", "_", param)
+  bdate_str <- format(bdate, "%Y%m%d")
+  edate_str <- format(edate, "%Y%m%d")
+  filename <- paste0(service, "_", aggregation, "_", param_safe, "_", bdate_str, "_", edate_str, ".json")
 }
-selected <- readline(prompt = "Enter your choice(s): ")
-selected_idxs <- as.integer(unlist(strsplit(selected, ",")))
-selected_idxs <- selected_idxs[!is.na(selected_idxs) & selected_idxs >= 1 & selected_idxs <= length(pollutants)]
-if (length(selected_idxs) == 0) {
-  stop("Invalid selection. Exiting.")
-}
-param <- as.character(unname(unlist(pollutants[selected_idxs])))
-
-bdate <- readline(prompt = "Enter begin date (YYYYMMDD): ")
-edate <- readline(prompt = "Enter end date (YYYYMMDD): ")
-bdate <- as.Date(format_date_to_yyyymmdd(bdate),format='%Y%m%d')
-edate <- as.Date(format_date_to_yyyymmdd(edate),format='%Y%m%d')
-
-result <- call_aqs_service(
-  service = service,
-  aggregation = aggregation,
-  parameter = param,
-  bdate = bdate,
-  edate = edate,
-  stateFIPS = state,
-  return_header = FALSE
-)
-
-param_safe <- gsub(",", "_", param)
-filename <- paste0(service,"_", aggregation, "_", param_safe,"_", bdate,"_", edate,".json")
+result <- do.call(call_aqs_service, args)
+cat("Retrieving data...")
 
 # Dynamically handle saving based on presence of Header and Data
-if (!is.null(result$Header) && !is.null(result$Data)) {
+if (!is.null(result[[1]]$Header) && !is.null(result[[1]]$Data)) {
   # return_header = TRUE: save both header and data
-  result$Header$url <- mask_api_key_and_email(result$Header$url)
-  save_json_to_file(list(Header = result$Header, Data = result$Data), filename)
+  res <- result[[1]]
+  res$Header$url <- mask_query_params(res$Header$url, c("email", "key"))
+  save_json_to_file(list(Header = res$Header, Data = res$Data), filename)
 } else if (!is.null(result$Data)) {
   # return_header = FALSE: save just data
   save_json_to_file(result$Data, filename)
@@ -137,4 +130,23 @@ if (!is.null(result$Header) && !is.null(result$Data)) {
 
 cat("DataFrame head:\n")
 print(head(result))
+
+user_settings <- list(
+  service = service,
+  aggregation = aggregation,
+  stateFIPS = state,
+  parameter = param
+)
+
+if (use_user_settings=="y"){
+  user_settings$bdate <- new_bdate
+  user_settings$edate <- new_edate
+} else {
+  user_settings$bdate <- bdate
+  user_settings$edate <- edate
+}
+
+saveRDS(user_settings, "user_settings.rds")
+
+
 cat("Script completed\n")
