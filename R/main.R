@@ -119,18 +119,25 @@ if (use_user_settings == "y"){
 result <- do.call(call_aqs_service, args)
 cat("Retrieving data...")
 
-# Dynamically handle saving based on presence of Header and Data
-if (!is.null(result[[1]]$Header) && !is.null(result[[1]]$Data)) {
-  # return_header = TRUE: save both header and data
-  res <- result[[1]]
-  res$Header$url <- mask_query_params(res$Header$url, c("email", "key"))
-  save_json_to_file(list(Header = res$Header, Data = res$Data), filename)
-} else if (!is.null(result$Data)) {
-  # return_header = FALSE: save just data
-  save_json_to_file(result$Data, filename)
-} else {
-  # fallback: try to save the result as-is
-  save_json_to_file(result, filename)
+for (i in 1:length(result)){
+  # Dynamically handle saving based on presence of Header and Data
+  if (!is.null(result[[i]]$Header) && !is.null(result[[i]]$Data)) {
+    # return_header = TRUE: save both header and data
+    res <- result[[i]]
+    res$Header$url <- mask_query_params(res$Header$url, c("email", "key"))
+    # When multiple results are returned (e.g., one per year), update the filename to indicate the specific year being saved
+    query_params <- get_query_params(res$Header$url, c("bdate", "edate"))
+    bdate <- query_params$bdate
+    edate <- query_params$edate
+    filename <- paste0(service, "_", aggregation, "_", param_safe, "_", bdate, "_", edate, ".json")
+    save_json_to_file(list(Header = res$Header, Data = res$Data), filename)
+  } else if (!is.null(result$Data)) {
+    # return_header = FALSE: save just data
+    save_json_to_file(result$Data, filename)
+  } else {
+    # fallback: try to save the result as-is
+    save_json_to_file(result, filename)
+  }
 }
 
 cat("DataFrame head:\n")

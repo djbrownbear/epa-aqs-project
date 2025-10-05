@@ -103,6 +103,17 @@ mask_query_params <- function(url, params, mask = "**MASKED**") {
     return(url)
 }
 
+get_query_params <- function(url, params) {
+  match_results <- c()
+  for (param in params) {
+    # Regex: lookbehind for "param=" then replace until next "&" or end
+    pattern <- paste0("(?<=", param, "=)[^&]+")
+    matched_strings <- regmatches(url, gregexpr(pattern, url, perl=TRUE))
+    match_results[param] <- matched_strings
+  }
+  return (match_results)
+}
+
 # Function to format date to YYYYMMDD
 format_date_to_yyyymmdd <- function(date_str) {
   # Accepts YYYYMMDD, YYYY-MM-DD, MM-DD-YYYY, YYYY/MM/DD, MM/DD/YYYY
