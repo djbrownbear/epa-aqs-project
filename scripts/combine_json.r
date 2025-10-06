@@ -40,6 +40,9 @@ main <- function(data_dir = NULL, pattern = NULL, output_file = NULL) {
     cat("Enter pattern to match start of filename\n i.e. quarterlysummary or press Enter to leave blank\n")
     readline("Input: ")
     }
+  if (pattern == "") {
+    pattern <- "*\\.json$"
+  }
   if (is.null(output_file)) output_file <- paste0("combined_data_", format(Sys.Date(), "%Y%m%d"), ".csv")
   combined_df <- combine_json_files(data_dir, pattern)
   combined_df <- add_quarter_end_date(combined_df)
