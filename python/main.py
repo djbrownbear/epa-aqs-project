@@ -2,20 +2,38 @@ import requests
 import os
 from dotenv import load_dotenv
 from datetime import datetime as dt
-from utils import save_json_to_file, load_json_to_dataframe, mask_api_key_and_email
+from utils import save_json_to_file, load_json_to_dataframe, mask_api_key_and_email, select_one_option, select_multiple_options
 
 # Load environment variables from .env file
 load_dotenv()
 
-# pollutants = {
-#     "Carbon Monoxide": 42101,
-#     "Lead PM10": 81102,
-#     "PM2.5": 88101,
-#     "Ozone": 44201,
-#     "Nitrogen Dioxide": 42602,
-#     "Sulfur Dioxide": 42401,
-#     "PM10": 81101
-# }
+services_list = [
+  ("Monitors", "monitors"),
+  ("Sample Data", "sampleData"),
+  ("Daily Summary Data", "dailyData"),
+  ("Annual Summary Data", "annualData"),
+  ("Quarterly Summary Data", "quarterlyData"),
+  ("Quality Assurance - Blanks Data", "qaBlanks"),
+  ("Quality Assurance - Collocated Assessments", "qaCollocatedAssessments"),
+  ("Quality Assurance - Flow Rate Verifications", "qaFlowRateVerifications"),
+  ("Quality Assurance - Flow Rate Audits", "qaFlowRateAudits"),
+  ("Quality Assurance - One Point Quality Control Raw Data", "qa_one_point_qc"),
+  ("Quality Assurance - PEP Audits", "qaPepAudits"),
+  ("Transaction Sample - AQS Submission data in transaction Format (RD)", "transactionsSample"),
+  ("Quality Assurance - Annual Performance Evaluations", "qaAnnualPerformanceEvaluations"),
+  ("Quality Assurance - Annual Performance Evaluations in the AQS Submission transaction format (RD)", "qaAnnualPerformanceEvaluationsTransaction"),
+  ("List of valid values for data entry elsewhere", "list")
+]
+
+aggregation_list = [
+    ("by site", "bySite"),
+    ("by county", "byCounty"),
+    ("by state", "byState"),
+    ("by box", "byBox"),
+    ("by monitoring agency", "byMA"),
+    ("by quality assurance organization", "byPQAO"),
+    ("by core statistical area", "byCBSA")
+]
 
 # Pollutant options for user selection (single source of truth)
 pollutants = [
@@ -118,43 +136,31 @@ def format_date_to_yyyymmdd(date_str):
 
     return date_obj.strftime("%Y%m%d")
 
-if __name__ == "__main__":
-
-    service = input("Enter service (e.g., annualData, dailyData, sampleData): ").strip() or "annualData"
-    by = input("Enter 'by' (e.g., byCounty, byState, bySite): ").strip() or "byCounty"
+def main():
+    service = select_one_option(services_list, prompt="Select a service:")
+    aggregation = select_one_option(aggregation_list, prompt="Select an aggregation method:")
     state = input("Enter state FIPS code (2 digits, e.g., 06): ").zfill(2)
 
     county = None
-    if by in ("byCounty", "bySite"):
+    if aggregation in ("byCounty", "bySite"):
         county = input("Enter county FIPS code (3 digits, e.g., 001): ").zfill(3)
 
-    print("Select pollutant(s) by number (comma-separated for multiple):")
-    for idx, (name, code) in enumerate(pollutants, 1):
-        print(f"  {idx}. {name} ({code})")
-    selected = input("Enter your choice(s): ")
-    selected_idxs = []
-    for s in selected.split(","):
-        stripped = s.strip()
-        if stripped.isdigit():
-            idx = int(stripped)
-            if 1 <= idx <= len(pollutants):
-                selected_idxs.append(idx)
-    if not selected_idxs:
-        print("Invalid selection. Exiting.")
-        exit(1)
-    param = ",".join(str(pollutants[i-1][1]) for i in selected_idxs)
+    param = ",".join(str(p) for p in select_multiple_options(pollutants, prompt="Select pollutant(s):"))
 
     bdate = input("Enter begin date (YYYYMMDD): ")
     edate = input("Enter end date (YYYYMMDD): ")
 
     # Build argument dictionary
-    aq_args = dict(service=service, by=by, state=state, param=param, bdate=bdate, edate=edate)
+    aq_args = dict(service=service, by=aggregation, state=state, param=param, bdate=bdate, edate=edate)
     if county is not None:
         aq_args["county"] = county
 
+    print("Fetching data with parameters:")
+    for k, v in aq_args.items():
+        print(f"  {k}: {v}")
     air_quality_data = get_air_quality_data(**aq_args)
 
-    filename = f"{service}_{by}_{param}_{bdate}_to_{edate}.json"
+    filename = f"{service}_{aggregation}_{param}_{bdate}_to_{edate}.json"
 
     if air_quality_data:
         air_quality_data = mask_api_key_and_email(air_quality_data)
@@ -162,3 +168,8 @@ if __name__ == "__main__":
         df = load_json_to_dataframe(filename=filename, record_path="Data")
         print("DataFrame:")
         print(df.head())
+    else:
+        print("No data retrieved.")
+
+if __name__ == "__main__":
+    main()

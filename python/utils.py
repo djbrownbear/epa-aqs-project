@@ -43,3 +43,50 @@ def format_date_to_yyyymmdd(date_str):
             raise ValueError("Date format must be 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.")
 
     return date_obj.strftime("%Y%m%d")
+
+def select_one_option(options, prompt="Select an option: "):
+    """
+    Display a list of options and prompt the user to select one.
+    
+    Args:
+        options (list): List of tuples (display_name, value).
+        prompt (str): Prompt message for user input.
+    Returns:
+        str: The value of the selected option.
+    """
+    print(prompt)
+    for i, (display_name, value) in enumerate(options, start=1):
+        print(f"{i}. {display_name}")
+    while True:
+        try:
+            choice = int(input("Enter the number of your choice: "))
+            if 1 <= choice <= len(options):
+                return options[choice - 1][1]
+            else:
+                print("Invalid choice. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+def select_multiple_options(options, prompt="Select options (comma-separated numbers): "):
+    """
+    Display a list of options and prompt the user to select multiple.
+    
+    Args:
+        options (list): List of tuples (display_name, value).
+        prompt (str): Prompt message for user input.
+    Returns:
+        list: List of values of the selected options.
+    """
+    print(prompt)
+    for i, (display_name, value) in enumerate(options, start=1):
+        print(f"{i}. {display_name}")
+    while True:
+        try:
+            choices = input("Enter the numbers of your choices (comma-separated): ")
+            selected = [options[int(c) - 1][1] for c in choices.split(",") if c.strip().isdigit()]
+            if selected:
+                return selected
+            else:
+                print("Invalid choice. Please try again.")
+        except (ValueError, IndexError):
+            print("Invalid input. Please enter numbers corresponding to the options.")
