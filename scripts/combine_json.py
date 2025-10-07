@@ -38,7 +38,7 @@ def main(data_dir=None, output_file=None):
         data_dir = input("Enter the directory containing JSON files: ")
         data_dir = os.path.normpath(data_dir)
     if output_file is None:
-        output_file = f"combined_data_{dt.now().strftime('%Y%m%d')}.csv"
+        output_file = f"combined_data_{dt.now().strftime('%Y%m%d-%H%M%S')}.csv"
     df = combine_json_files(data_dir)
     df = add_quarter_end_date(df)
     df.to_csv(output_file, index=False)
