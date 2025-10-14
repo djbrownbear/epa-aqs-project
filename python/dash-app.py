@@ -17,7 +17,7 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-data_path = Path("my_reports/combined_data_20251006.csv")
+data_path = Path("data/combined_data_20251006.csv")
 filename = data_path.name
 
 # Load your dataset
@@ -42,7 +42,7 @@ df_5_rows = grouped_df.head()
 csv_string = df_5_rows.to_csv(index=False)
 
 # Path to cleaned data for LLM context
-cleaned_data_path = Path("my_reports/cleaned_combined_data_20251006.csv")
+cleaned_data_path = Path("data/cleaned_combined_data_20251006.csv")
 filename = cleaned_data_path.name
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
