@@ -329,7 +329,6 @@ def update_map(selected_pollutant, selected_county):
         size=size_col,
         hover_name='local_site_name',
         hover_data=['arithmetic_mean', 'date'],
-        zoom=8,
         mapbox_style="open-street-map",
         title=f"Air Quality Measurements (Pollutant - {selected_pollutant})"
     )
