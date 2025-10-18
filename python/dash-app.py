@@ -203,6 +203,14 @@ app.layout = html.Div([
     html.Br(),
     html.H2("Predefined Visualizations"),
     html.P("Explore predefined visualizations of the air quality dataset."),
+    html.Label("Select Pollutant:"),
+    dcc.Dropdown(
+        id='pollutant-dropdown',
+        options=pollutant_options,
+        value=pollutant_options[0]['value'] if pollutant_options else None,
+        multi=False,
+        clearable=False
+    ),
     html.Label("Select County:"),
     dcc.Dropdown(
         id='county-dropdown',
@@ -210,14 +218,6 @@ app.layout = html.Div([
         value=None,
         multi=True,
         clearable=True
-    ),
-    html.Label("Select Pollutant:"),
-    dcc.Dropdown(
-        id='pollutant-dropdown',
-        options=[{'label': str(p), 'value': p} for p in sorted(df['parameter'].unique())],
-        value=df['parameter'].unique()[0],
-        multi=False,
-        clearable=False
     ),
     dcc.Graph(id='time-series-plot'),
     dcc.Graph(id='distribution-plot'),
@@ -281,11 +281,12 @@ def update_time_series(selected_pollutant, selected_county):
 
 @app.callback(
     Output('distribution-plot', 'figure'),
-    [Input('county-dropdown', 'value')]
+    [Input('pollutant-dropdown', 'value')],
+    [Input('county-dropdown', 'value')],
 )
-def update_distribution(selected_county):
+def update_distribution(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = df
+        filtered = df[df['parameter'] == selected_pollutant]
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -294,7 +295,7 @@ def update_distribution(selected_county):
         )
         return fig
     else:
-        filtered = df[df['county'].isin(selected_county)]
+        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -305,10 +306,15 @@ def update_distribution(selected_county):
 
 @app.callback(
     Output('map-plot', 'figure'),
-    [Input('pollutant-dropdown', 'value')]
+    [Input('pollutant-dropdown', 'value')],
+    [Input('county-dropdown', 'value')]
 )
-def update_map(selected_pollutant):
-    filtered = df[df['parameter'] == selected_pollutant].copy()
+def update_map(selected_pollutant, selected_county):
+    if not selected_county or selected_county[0] == 'all':
+        filtered = df[df['parameter'] == selected_pollutant]
+    else:
+        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
+    
     size_col = 'arithmetic_mean'
 
     # If any values in size_col are negative, disable sizing
@@ -325,7 +331,7 @@ def update_map(selected_pollutant):
         hover_data=['arithmetic_mean', 'date'],
         zoom=8,
         mapbox_style="open-street-map",
-        title=f"Air Quality Measurements (Pollutant {selected_pollutant})"
+        title=f"Air Quality Measurements (Pollutant - {selected_pollutant})"
     )
     return fig
 
