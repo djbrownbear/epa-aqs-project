@@ -64,12 +64,14 @@ def get_fig_from_code(code):
     exec(code, {}, local_vars)
     return local_vars.get('fig', None)
 
-def get_county_options():
-    county_options = [{'label': str(c), 'value': c} for c in sorted(df['county'].unique())]
-    county_options.insert(0, {'label': 'All Counties', 'value': 'all'})
-    return county_options
+def get_param_options(param=None, add_all=True, dataframe=df):
+    param_options = [{'label': str(p), 'value': p} for p in sorted(dataframe[str(param)].unique())]
+    if add_all:
+        param_options.insert(0, {'label': 'All', 'value': 'all'})
+    return param_options
 
-county_options = get_county_options()
+county_options = get_param_options('county')
+pollutant_options = get_param_options('parameter', add_all=False)
 
 app = dash.Dash(__name__)
 server = app.server # Expose the server variable for deployments
