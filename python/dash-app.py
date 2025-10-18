@@ -72,6 +72,8 @@ def get_county_options():
 county_options = get_county_options()
 
 app = dash.Dash(__name__)
+server = app.server # Expose the server variable for deployments
+app.title = "Air Quality Dashboard"
 
 app.layout = html.Div([
     html.H1("Air Quality Data Dashboard"),
@@ -113,19 +115,33 @@ app.layout = html.Div([
     [State('county-dropdown', 'options')]
 )
 def clear_county_selection(selected_county, options):
-    if selected_county and 'all' in selected_county:
-        # If "All Counties" is selected, clear other selections and set value to ['all']
-        return ['all']
-    return selected_county
+    if selected_county and 'all' not in selected_county:
+        return [c for c in selected_county]
+    return []
+
+@app.callback(
+    Output('county-dropdown', 'options'),
+    [Input('pollutant-dropdown', 'value')],
+    [State('county-dropdown', 'options')]
+)
+def set_county_options(selected_pollutant, options):
+    if not selected_pollutant or 'all' in selected_pollutant:
+        # If "All Pollutants" is selected, show all counties
+        return get_param_options('county', add_all=False)
+    else:
+        # Filter pollutants based on selected counties
+        filtered = df[df['parameter'] == selected_pollutant]
+        return get_param_options('county', add_all=True, dataframe=filtered)
 
 @app.callback(
     Output('time-series-plot', 'figure'),
+    [Input('pollutant-dropdown', 'value')],
     [Input('county-dropdown', 'value')]
 )
-def update_time_series(selected_county):
+def update_time_series(selected_pollutant, selected_county):
     # Handle "All Counties" selection
     if not selected_county or selected_county[0] == 'all':
-        filtered = grouped_df
+        filtered = grouped_df[grouped_df['parameter'] == selected_pollutant]
         fig = px.line(
             filtered,
             x='date',
@@ -138,7 +154,7 @@ def update_time_series(selected_county):
         if isinstance(selected_county, str):
             selected_county = [selected_county]
 
-        filtered = grouped_df[grouped_df['county'].isin(selected_county)]
+        filtered = grouped_df[grouped_df['county'].isin(selected_county) & (grouped_df['parameter'] == selected_pollutant)]
         fig = px.line(
             filtered,
             x='date',
@@ -180,12 +196,16 @@ def update_map(selected_pollutant):
     filtered = df[df['parameter'] == selected_pollutant].copy()
     size_col = 'arithmetic_mean'
 
+    # If any values in size_col are negative, disable sizing
+    if (filtered[size_col] < 0).any() or filtered[size_col].isnull().all():
+        size_col = None
+
     fig = px.scatter_mapbox(
         filtered,
         lat='latitude',
         lon='longitude',
         color='arithmetic_mean',  # or another measurement column
-        size=size_col,   # or another measurement column
+        size=size_col,
         hover_name='local_site_name',
         hover_data=['arithmetic_mean', 'date'],
         zoom=8,
@@ -205,7 +225,7 @@ def create_graph(_, user_input):
     response = chain.invoke({
         "messages": [HumanMessage(content=user_input)],
         "data": csv_string,
-        "filename": cleaned_data_path
+        "dataframe": 'cleaned_df'
     })
     res_output = response.content
     print("Generated Code:\n", res_output)
