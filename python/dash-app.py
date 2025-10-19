@@ -13,15 +13,129 @@ from plotly import graph_objects as go
 import os
 from dotenv import load_dotenv
 
+import requests
+import sqlalchemy
+from sqlalchemy import inspect
+
+# POSTGRESQL IMPORTS
+from google.cloud.sql.connector import Connector, IPTypes
+import pg8000
+
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
+MODE = os.getenv("MODE", "development").lower() # "development" or "production"
+
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable not set.")
 
 data_path = Path("data/combined_data_20251006.csv")
 filename = data_path.name
 
-# Load your dataset
-df = pd.read_csv(data_path)
+# DATABASE CONNECTION SETUP
+
+def create_mysql_engine(mode: str) -> sqlalchemy.engine.base.Engine:
+
+    # MYSQL WITH SQLALCHEMY
+    DB_USER = os.getenv("MYSQL_DB_USER")
+    DB_PASS = os.getenv("MYSQL_DB_PASS")
+    DB_NAME = os.getenv("MYSQL_DB_NAME")
+    DB_HOST = os.getenv("MYSQL_DB_HOST")
+
+    if mode == "production":
+        db_url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_USER}${DB_NAME}"
+    else: 
+        local_port = 3306
+        db_url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASS}@localhost:{local_port}/{DB_USER}${DB_NAME}"
+
+    engine = sqlalchemy.create_engine(db_url)
+    return engine
+
+# POSTGRESQL WITH CLOUD SQL CONNECTOR
+def connect_with_connector() -> sqlalchemy.engine.base.Engine:
+    """
+    Initializes a connection pool for a Cloud SQL instance of Postgres.
+
+    Uses the Cloud SQL Python Connector package.
+    """
+    # Note: Saving credentials in environment variables is convenient, but not
+    # secure - consider a more secure solution such as
+    # Cloud Secret Manager (https://cloud.google.com/secret-manager) to help
+    # keep secrets safe.
+
+    instance_connection_name = os.environ[
+        "CLOUD_SQL_DB_HOST"
+    ]  # e.g. 'project:region:instance'
+    db_user = os.environ["CLOUD_SQL_DB_USER"]  # e.g. 'my-db-user'
+    db_pass = os.environ["CLOUD_SQL_DB_PASS"]  # e.g. 'my-db-password'
+    db_name = os.environ["CLOUD_SQL_DB_NAME"]  # e.g. 'my-database'
+
+    ip_type = IPTypes.PRIVATE if os.environ.get("PRIVATE_IP") else IPTypes.PUBLIC
+
+    # initialize Cloud SQL Python Connector object
+    connector = Connector(refresh_strategy="LAZY")
+
+    def getconn() -> pg8000.dbapi.Connection:
+        conn: pg8000.dbapi.Connection = connector.connect(
+            instance_connection_name,
+            "pg8000",
+            user=db_user,
+            password=db_pass,
+            db=db_name,
+            ip_type=ip_type,
+        )
+        return conn
+
+    # The Cloud SQL Python Connector can be used with SQLAlchemy
+    # using the 'creator' argument to 'create_engine'
+    pool = sqlalchemy.create_engine(
+        "postgresql+pg8000://",
+        creator=getconn,
+        # ...
+    )
+    return pool
+
+if CONNECTION_TYPE == "mysql":
+    engine = create_mysql_engine(MODE)
+    table_name = os.getenv("MYSQL_TABLE_NAME", "air_quality")
+elif CONNECTION_TYPE == "cloud_sql":
+    engine = connect_with_connector()
+    table_name = os.getenv("CLOUD_SQL_TABLE_NAME", "air_quality")
+elif CONNECTION_TYPE == "sqlite":
+    db_path = "epa_aqs_data.db"
+    engine = sqlalchemy.create_engine(f"sqlite:///{db_path}")
+    table_name = os.getenv("SQLITE_TABLE_NAME", "air_quality")
+elif CONNECTION_TYPE == "github_raw":
+    # For GitHub raw CSV access, we won't use SQLAlchemy
+    url = os.getenv("GITHUB_RAW_CSV_URL", None)
+    cleaned_data_url = os.getenv("GITHUB_CLEANED_CSV_URL", None)
+
+    try:
+        download = requests.get(url).content
+        cleaned_download = requests.get(cleaned_data_url).content
+    except Exception as e:
+        print(f"Error downloading files: {e}")
+    table_name = None
+else:
+    raise ValueError("Unsupported connection type specified.")
+
+# If the table doesn't exist, upload the CSV
+if CONNECTION_TYPE in ["mysql", "sqlite", "cloud_sql"]:
+    with engine.begin() as conn:
+        if not inspect(conn).has_table(table_name):
+            csv_df = pd.read_csv(data_path)
+            csv_df.to_sql(table_name, conn, index=False, if_exists="replace", chunksize=1000)
+            print(f"Uploaded data to table '{table_name}'.")
+
+if CONNECTION_TYPE == "github_raw":
+    df = pd.read_csv(pd.compat.StringIO(download.decode('utf-8')), index_col=0)
+    cleaned_df = pd.read_csv(pd.compat.StringIO(cleaned_download.decode('utf-8')))
+elif CONNECTION_TYPE in ["mysql", "sqlite", "cloud_sql"]:
+    # Load your dataset from the database
+    df = pd.read_sql(f"SELECT * FROM {table_name}", engine)
+else:
+    raise ValueError("Unsupported connection type specified.")
 
 # Basic preprocessing (adjust column names as needed)
 df['date'] = pd.to_datetime(df['date'])
@@ -41,16 +155,15 @@ grouped_df = df.groupby(['date','county','parameter']).agg({
 df_5_rows = grouped_df.head()
 csv_string = df_5_rows.to_csv(index=False)
 
-# Path to cleaned data for LLM context
-cleaned_data_path = Path("data/cleaned_combined_data_20251006.csv")
-filename = cleaned_data_path.name
+# provide cleaned data for LLM context
+cleaned_df = df.groupby(["county",pd.Grouper(key="date", freq="Q"), "year", "quarter","parameter","parameter_code"]).agg({'latitude':'first','longitude':'first','arithmetic_mean': 'mean', 'units_of_measure': 'first'}).reset_index()
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", 
      "You're a data visualization expert and use your favorite graphing library Plotly only. Suppose, that"
-     "the data is provided as a {filename} file. Here are the first 5 rows of the data set: {data}"
+     "the data is provided as a Pandas dataframe name {dataframe}. Here are the first 5 rows of the data set: {data}"
      "Follow the user's instructions carefully and provide only the code as output. Do not include any explanations or additional text."
     ),
     MessagesPlaceholder(variable_name="messages"),
@@ -61,17 +174,21 @@ chain = prompt | llm
 
 def get_fig_from_code(code):
     local_vars = {}
-    exec(code, {}, local_vars)
+    exec(code, {"cleaned_df": cleaned_df, "px": px, "go": go, "pd": pd}, local_vars)
     return local_vars.get('fig', None)
 
-def get_county_options():
-    county_options = [{'label': str(c), 'value': c} for c in sorted(df['county'].unique())]
-    county_options.insert(0, {'label': 'All Counties', 'value': 'all'})
-    return county_options
+def get_param_options(param=None, add_all=True, dataframe=df):
+    param_options = [{'label': str(p), 'value': p} for p in sorted(dataframe[str(param)].unique())]
+    if add_all:
+        param_options.insert(0, {'label': 'All', 'value': 'all'})
+    return param_options
 
-county_options = get_county_options()
+county_options = get_param_options('county')
+pollutant_options = get_param_options('parameter', add_all=False)
 
 app = dash.Dash(__name__)
+server = app.server # Expose the server variable for deployments
+app.title = "Air Quality Dashboard"
 
 app.layout = html.Div([
     html.H1("Air Quality Data Dashboard"),
@@ -86,6 +203,14 @@ app.layout = html.Div([
     html.Br(),
     html.H2("Predefined Visualizations"),
     html.P("Explore predefined visualizations of the air quality dataset."),
+    html.Label("Select Pollutant:"),
+    dcc.Dropdown(
+        id='pollutant-dropdown',
+        options=pollutant_options,
+        value=pollutant_options[0]['value'] if pollutant_options else None,
+        multi=False,
+        clearable=False
+    ),
     html.Label("Select County:"),
     dcc.Dropdown(
         id='county-dropdown',
@@ -93,14 +218,6 @@ app.layout = html.Div([
         value=None,
         multi=True,
         clearable=True
-    ),
-    html.Label("Select Pollutant:"),
-    dcc.Dropdown(
-        id='pollutant-dropdown',
-        options=[{'label': str(p), 'value': p} for p in sorted(df['parameter'].unique())],
-        value=df['parameter'].unique()[0],
-        multi=False,
-        clearable=False
     ),
     dcc.Graph(id='time-series-plot'),
     dcc.Graph(id='distribution-plot'),
@@ -113,19 +230,33 @@ app.layout = html.Div([
     [State('county-dropdown', 'options')]
 )
 def clear_county_selection(selected_county, options):
-    if selected_county and 'all' in selected_county:
-        # If "All Counties" is selected, clear other selections and set value to ['all']
-        return ['all']
-    return selected_county
+    if selected_county and 'all' not in selected_county:
+        return [c for c in selected_county]
+    return []
+
+@app.callback(
+    Output('county-dropdown', 'options'),
+    [Input('pollutant-dropdown', 'value')],
+    [State('county-dropdown', 'options')]
+)
+def set_county_options(selected_pollutant, options):
+    if not selected_pollutant or selected_pollutant == 'all':
+        # If "All Pollutants" is selected, show all counties
+        return get_param_options('county', add_all=True)
+    else:
+        # Filter counties based on selected pollutant
+        filtered = df[df['parameter'] == selected_pollutant]
+        return get_param_options('county', add_all=True, dataframe=filtered)
 
 @app.callback(
     Output('time-series-plot', 'figure'),
+    [Input('pollutant-dropdown', 'value')],
     [Input('county-dropdown', 'value')]
 )
-def update_time_series(selected_county):
+def update_time_series(selected_pollutant, selected_county):
     # Handle "All Counties" selection
     if not selected_county or selected_county[0] == 'all':
-        filtered = grouped_df
+        filtered = grouped_df[grouped_df['parameter'] == selected_pollutant]
         fig = px.line(
             filtered,
             x='date',
@@ -138,7 +269,7 @@ def update_time_series(selected_county):
         if isinstance(selected_county, str):
             selected_county = [selected_county]
 
-        filtered = grouped_df[grouped_df['county'].isin(selected_county)]
+        filtered = grouped_df[grouped_df['county'].isin(selected_county) & (grouped_df['parameter'] == selected_pollutant)]
         fig = px.line(
             filtered,
             x='date',
@@ -150,11 +281,12 @@ def update_time_series(selected_county):
 
 @app.callback(
     Output('distribution-plot', 'figure'),
-    [Input('county-dropdown', 'value')]
+    [Input('pollutant-dropdown', 'value')],
+    [Input('county-dropdown', 'value')],
 )
-def update_distribution(selected_county):
+def update_distribution(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = df
+        filtered = df[df['parameter'] == selected_pollutant]
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -163,7 +295,7 @@ def update_distribution(selected_county):
         )
         return fig
     else:
-        filtered = df[df['county'].isin(selected_county)]
+        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -174,23 +306,31 @@ def update_distribution(selected_county):
 
 @app.callback(
     Output('map-plot', 'figure'),
-    [Input('pollutant-dropdown', 'value')]
+    [Input('pollutant-dropdown', 'value')],
+    [Input('county-dropdown', 'value')]
 )
-def update_map(selected_pollutant):
-    filtered = df[df['parameter'] == selected_pollutant].copy()
+def update_map(selected_pollutant, selected_county):
+    if not selected_county or selected_county[0] == 'all':
+        filtered = df[df['parameter'] == selected_pollutant]
+    else:
+        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
+    
     size_col = 'arithmetic_mean'
+
+    # If any values in size_col are negative, disable sizing
+    if (filtered[size_col] < 0).any() or filtered[size_col].isnull().all():
+        size_col = None
 
     fig = px.scatter_mapbox(
         filtered,
         lat='latitude',
         lon='longitude',
         color='arithmetic_mean',  # or another measurement column
-        size=size_col,   # or another measurement column
+        size=size_col,
         hover_name='local_site_name',
         hover_data=['arithmetic_mean', 'date'],
-        zoom=8,
         mapbox_style="open-street-map",
-        title=f"Air Quality Measurements (Pollutant {selected_pollutant})"
+        title=f"Air Quality Measurements (Pollutant - {selected_pollutant})"
     )
     return fig
 
@@ -205,7 +345,7 @@ def create_graph(_, user_input):
     response = chain.invoke({
         "messages": [HumanMessage(content=user_input)],
         "data": csv_string,
-        "filename": cleaned_data_path
+        "dataframe": 'cleaned_df'
     })
     res_output = response.content
     print("Generated Code:\n", res_output)
