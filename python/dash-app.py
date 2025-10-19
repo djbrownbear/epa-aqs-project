@@ -240,7 +240,7 @@ def clear_county_selection(selected_county, options):
     [State('county-dropdown', 'options')]
 )
 def set_county_options(selected_pollutant, options):
-    if not selected_pollutant or 'all' in selected_pollutant:
+    if not selected_pollutant or selected_pollutant == 'all':
         # If "All Pollutants" is selected, show all counties
         return get_param_options('county', add_all=False)
     else:
