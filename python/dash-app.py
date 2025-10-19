@@ -179,7 +179,6 @@ def get_code_header_title(selected_language):
     return f'Here is the code to create the graph using {selected_language}:'
 
 def get_prompt(selected_language):
-    print(f"Selected language: {selected_language}")
     if selected_language == "R":
         return ChatPromptTemplate.from_messages([
             ("system",
@@ -388,7 +387,6 @@ def create_graph(_, user_input, selected_language):
         "dataframe": 'cleaned_df'
     })
     res_output = response.content
-    print(f"LLM Response:\n{res_output}")
 
     if selected_language == "R":
         # Extract both Python and R code blocks
