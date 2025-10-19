@@ -386,7 +386,7 @@ def create_graph(_, user_input, selected_language):
         else:
             fig = None
         r_code = r_match.group(1).strip() if r_match else "No R code found."
-        return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```r\n{r_code}\n```') if fig else "No Python figure found."
+        return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```r\n{r_code}\n```') if fig else "No figure generated."
     else:
         # Default: Python only
         py_match = re.search(r"```(?:[Pp]ython)?[ \t\r\n]*(.*?)[ \t\r\n]*```", res_output, re.DOTALL)
