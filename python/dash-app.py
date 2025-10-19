@@ -378,7 +378,7 @@ def create_graph(_, user_input, selected_language):
     if selected_language == "R":
         # Extract both Python and R code blocks
         py_match = re.search(r"```(?:[Pp]ython)?[ \t\r\n]*(.*?)[ \t\r\n]*```", res_output, re.DOTALL)
-        r_match = re.search(r"```[Rr]\n(.*?)```", res_output, re.DOTALL)
+        r_match = re.search(r"```[Rr][ \t\r\n]*(.*?)[ \t\r\n]*```", res_output, re.DOTALL)
         if py_match:
             code_block = py_match.group(1).strip()
             cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
