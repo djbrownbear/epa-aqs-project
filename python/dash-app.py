@@ -396,7 +396,7 @@ def create_graph(_, user_input, selected_language):
             fig = get_fig_from_code(cleaned_code)
             return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```python\n{code_block}\n```') if fig else "No Python figure found."
         else:
-            return "No code block found in the response.", res_output
+            return "No code block found in the response.", "", res_output
 
 if __name__ == '__main__':
     app.run(debug=True)
