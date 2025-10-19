@@ -156,7 +156,22 @@ df_5_rows = grouped_df.head()
 csv_string = df_5_rows.to_csv(index=False)
 
 # provide cleaned data for LLM context
-cleaned_df = df.groupby(["county",pd.Grouper(key="date", freq="Q"), "year", "quarter","parameter","parameter_code"]).agg({'latitude':'first','longitude':'first','arithmetic_mean': 'mean', 'units_of_measure': 'first', 'local_site_name':'first'}).reset_index()
+cleaned_groupby_cols = [
+    "county",
+    pd.Grouper(key="date", freq="Q"),
+    "year",
+    "quarter",
+    "parameter",
+    "parameter_code"
+]
+cleaned_agg_dict = {
+    'latitude': 'first',
+    'longitude': 'first',
+    'arithmetic_mean': 'mean',
+    'units_of_measure': 'first',
+    'local_site_name': 'first'
+}
+cleaned_df = df.groupby(cleaned_groupby_cols).agg(cleaned_agg_dict).reset_index()
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
 
