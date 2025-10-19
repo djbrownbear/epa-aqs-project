@@ -242,7 +242,7 @@ def clear_county_selection(selected_county, options):
 def set_county_options(selected_pollutant, options):
     if not selected_pollutant or selected_pollutant == 'all':
         # If "All Pollutants" is selected, show all counties
-        return get_param_options('county', add_all=False)
+        return get_param_options('county', add_all=True)
     else:
         # Filter counties based on selected pollutant
         filtered = df[df['parameter'] == selected_pollutant]
