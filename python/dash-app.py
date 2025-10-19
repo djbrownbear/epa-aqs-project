@@ -97,7 +97,7 @@ def connect_with_connector() -> sqlalchemy.engine.base.Engine:
     return pool
 
 if CONNECTION_TYPE == "mysql":
-    engine = create_mysql_engine()
+    engine = create_mysql_engine(MODE)
     table_name = os.getenv("MYSQL_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "cloud_sql":
     engine = connect_with_connector()
