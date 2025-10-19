@@ -27,7 +27,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
 MODE = os.getenv("MODE", "development").lower() # "development" or "production"
 
-if not GEMINI_API_KEY and CONNECTION_TYPE == "cloud_sql":
+if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable not set.")
 
 data_path = Path("data/combined_data_20251006.csv")
