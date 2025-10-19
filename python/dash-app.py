@@ -156,21 +156,48 @@ df_5_rows = grouped_df.head()
 csv_string = df_5_rows.to_csv(index=False)
 
 # provide cleaned data for LLM context
-cleaned_df = df.groupby(["county",pd.Grouper(key="date", freq="Q"), "year", "quarter","parameter","parameter_code"]).agg({'latitude':'first','longitude':'first','arithmetic_mean': 'mean', 'units_of_measure': 'first'}).reset_index()
+cleaned_groupby_cols = [
+    "county",
+    pd.Grouper(key="date", freq="Q"),
+    "year",
+    "quarter",
+    "parameter",
+    "parameter_code"
+]
+cleaned_agg_dict = {
+    'latitude': 'first',
+    'longitude': 'first',
+    'arithmetic_mean': 'mean',
+    'units_of_measure': 'first',
+    'local_site_name': 'first'
+}
+cleaned_df = df.groupby(cleaned_groupby_cols).agg(cleaned_agg_dict).reset_index()
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", 
-     "You're a data visualization expert and use your favorite graphing library Plotly only. Suppose, that"
-     "the data is provided as a Pandas dataframe name {dataframe}. Here are the first 5 rows of the data set: {data}"
-     "Follow the user's instructions carefully and provide only the code as output. Do not include any explanations or additional text."
-    ),
-    MessagesPlaceholder(variable_name="messages"),
-    ]
-)
+def get_code_header_title(selected_language):
+    return f'Here is the code to create the graph using {selected_language}:'
 
-chain = prompt | llm
+def get_prompt(selected_language):
+    if selected_language == "R":
+        return ChatPromptTemplate.from_messages([
+            ("system",
+             "You're a data visualization expert. Use Plotly for Python and for R. "
+             "The data is provided as a Pandas dataframe named {dataframe}. Here are the first 5 rows: {data} "
+             "If the user requests R, provide R code using Plotly and Python code using Plotly. "
+             "Follow instructions and provide only the code as output."
+            ),
+            MessagesPlaceholder(variable_name="messages"),
+        ])
+    else:  # Python
+        return ChatPromptTemplate.from_messages([
+            ("system",
+             "You're a data visualization expert and use your favorite graphing library Plotly only. "
+             "The data is provided as a Pandas dataframe named {dataframe}. Here are the first 5 rows: {data} "
+             "Follow instructions and provide only the code as output."
+            ),
+            MessagesPlaceholder(variable_name="messages"),
+        ])
 
 def get_fig_from_code(code):
     local_vars = {}
@@ -194,10 +221,14 @@ app.layout = html.Div([
     html.H1("Air Quality Data Dashboard"),
     html.H2("Using Gemini-2.5 to Generate Visualizations from Natural Language"),
     html.P("Interactively explore air quality data and generate custom visualizations using natural language."),
+    html.Div([html.Label("Select programming language for code output:"),
+        dcc.RadioItems(id='programming-language-radio',
+                       options=[{'label': 'Python', 'value': 'Python'}, {'label' : 'R', 'value' : 'R'}], value='Python')
+    ]),
     dcc.Textarea(id='user-input', placeholder='Enter your graph request here...', style={'width': '100%'}),
     html.Button('Submit', id='submit-button'),
     dcc.Loading(
-        [html.Div(id='output-div'), dcc.Markdown(id='generated-code')
+        [html.Div(id='output-div'), html.H3(id="selected_language-title"), dcc.Markdown(id='generated-code')
          ], type="cube"),
 
     html.Br(),
@@ -336,36 +367,49 @@ def update_map(selected_pollutant, selected_county):
 
 @app.callback(
     Output('output-div', 'children'),
+    Output('selected_language-title', 'children'),
     Output('generated-code', 'children'),
     Input('submit-button', 'n_clicks'),
     State('user-input', 'value'),
+    State('programming-language-radio', 'value'),
     prevent_initial_call=True
 )
-def create_graph(_, user_input):
+def create_graph(_, user_input, selected_language):
+    if not selected_language:
+        selected_language = "Python"
+
+    prompt = get_prompt(selected_language)
+    chain = prompt | llm
+
     response = chain.invoke({
         "messages": [HumanMessage(content=user_input)],
         "data": csv_string,
         "dataframe": 'cleaned_df'
     })
     res_output = response.content
-    print("Generated Code:\n", res_output)
 
-    # check if the answer includes code. This regular expression matches code blocks
-    # with or without language specifier (like `python`)
-    code_block_pattern = r"```(?:[Pp]ython)?\s*(.*?)```"
-    match = re.search(code_block_pattern, res_output, re.DOTALL)
-    print("Match:", match.group(1))
-
-    if match:
-        code_block = match.group(1).strip()
-        cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
-        fig = get_fig_from_code(cleaned_code)
-        if fig:
-            return dcc.Graph(figure=fig), res_output
+    if selected_language == "R":
+        # Extract both Python and R code blocks
+        py_match = re.search(r"```(?:[Pp]ython)?[ \t\r\n]*(.*?)[ \t\r\n]*```", res_output, re.DOTALL)
+        r_match = re.search(r"```[Rr][ \t\r\n]*(.*?)[ \t\r\n]*```", res_output, re.DOTALL)
+        if py_match:
+            code_block = py_match.group(1).strip()
+            cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
+            fig = get_fig_from_code(cleaned_code)
         else:
-            return "Error generating figure from code.", f"```python\n{cleaned_code}\n```"
+            fig = None
+        r_code = r_match.group(1).strip() if r_match else "No R code found."
+        return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```r\n{r_code}\n```') if fig else "No figure generated."
     else:
-        return "No code block found in the response.", res_output
+        # Default: Python only
+        py_match = re.search(r"```(?:[Pp]ython)?[ \t\r\n]*(.*?)[ \t\r\n]*```", res_output, re.DOTALL)
+        if py_match:
+            code_block = py_match.group(1).strip()
+            cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
+            fig = get_fig_from_code(cleaned_code)
+            return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```python\n{code_block}\n```') if fig else "No Python figure found."
+        else:
+            return "No code block found in the response.", "", res_output
 
 if __name__ == '__main__':
     app.run(debug=True)
