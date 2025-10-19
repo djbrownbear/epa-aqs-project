@@ -362,7 +362,7 @@ def update_map(selected_pollutant, selected_county):
 )
 def create_graph(_, user_input, selected_language):
     if not selected_language:
-        selected_language = "Python"  # or "R"
+        selected_language = "Python"
 
     prompt = get_prompt(selected_language)
     chain = prompt | llm
