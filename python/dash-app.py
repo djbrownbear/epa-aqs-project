@@ -261,10 +261,10 @@ def clear_county_selection(selected_county, options):
 def set_county_options(selected_pollutant, options):
     if not selected_pollutant or selected_pollutant == 'all':
         # If "All Pollutants" is selected, show all counties
-        return get_param_options('county', add_all=True)
+        return get_param_options('county', add_all=True, dataframe=cleaned_df)
     else:
         # Filter counties based on selected pollutant
-        filtered = df[df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant)
         return get_param_options('county', add_all=True, dataframe=filtered)
 
 @app.callback(
@@ -275,7 +275,7 @@ def set_county_options(selected_pollutant, options):
 def update_time_series(selected_pollutant, selected_county):
     # Handle "All Counties" selection
     if not selected_county or selected_county[0] == 'all':
-        filtered = grouped_df[grouped_df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=grouped_df, pollutant=selected_pollutant)
         fig = px.line(
             filtered,
             x='date',
@@ -288,7 +288,7 @@ def update_time_series(selected_pollutant, selected_county):
         if isinstance(selected_county, str):
             selected_county = [selected_county]
 
-        filtered = grouped_df[grouped_df['county'].isin(selected_county) & (grouped_df['parameter'] == selected_pollutant)]
+        filtered = filter_df(df=grouped_df, pollutant=selected_pollutant, counties=selected_county)
         fig = px.line(
             filtered,
             x='date',
@@ -305,7 +305,7 @@ def update_time_series(selected_pollutant, selected_county):
 )
 def update_distribution(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = df[df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant)
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -314,7 +314,7 @@ def update_distribution(selected_pollutant, selected_county):
         )
         return fig
     else:
-        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
+        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant, counties=selected_county)
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -330,10 +330,10 @@ def update_distribution(selected_pollutant, selected_county):
 )
 def update_map(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = df[df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant)
     else:
-        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
-    
+        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant, counties=selected_county)
+
     size_col = 'arithmetic_mean'
 
     # If any values in size_col are negative, disable sizing
