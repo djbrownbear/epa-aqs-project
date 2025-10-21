@@ -232,7 +232,7 @@ def is_similar(a, b, threshold=0.8):
 def secure_user_input(user_input, system_prompt):
     if len(user_input) > MAX_INPUT_LENGTH:
         return False, "Input too long. Please shorten your request."
-    if any(pat in user_input for pat in BLOCKED_PATTERNS):
+    if any(pat in user_input.lower() for pat in BLOCKED_PATTERNS):
         return False, "Input contains blocked phrases. Please rephrase."
     if is_similar(user_input, system_prompt):
         return False, "Input too similar to system prompt. Please rephrase."
