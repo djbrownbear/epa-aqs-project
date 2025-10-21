@@ -416,7 +416,7 @@ def create_graph(_, user_input, selected_language):
         "data": csv_string,
         "dataframe": 'cleaned_df'
     }
-    prompt_str = prompt.format_messages(data=csv_string, dataframe='cleaned_df',messages= [HumanMessage(content=user_input)])[0].content
+    prompt_str = prompt.format_messages(data=csv_string, dataframe='cleaned_df', messages=[HumanMessage(content=user_input)])[0].content
 
     is_secure, secured_input = secure_user_input(user_input, prompt_str)
     if not is_secure:
