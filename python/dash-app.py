@@ -1,4 +1,5 @@
 import re
+from difflib import SequenceMatcher
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -226,7 +227,6 @@ def get_param_options(param=None, add_all=True, dataframe=df):
     return param_options
 
 def is_similar(a, b, threshold=0.8):
-    from difflib import SequenceMatcher
     return SequenceMatcher(None, a.lower(), b.lower()).ratio() > threshold
 
 def secure_user_input(user_input, system_prompt):
@@ -411,18 +411,18 @@ def create_graph(_, user_input, selected_language):
     prompt = get_prompt(selected_language)
     chain = prompt | llm
 
-    instructions={
-        "messages": [HumanMessage(content=user_input)],
-        "data": csv_string,
-        "dataframe": 'cleaned_df'
-    }
     prompt_str = prompt.format_messages(data=csv_string, dataframe='cleaned_df',messages= [HumanMessage(content=user_input)])[0].content
 
     is_secure, secured_input = secure_user_input(user_input, prompt_str)
     if not is_secure:
         return html.Div(f"Input validation failed: {secured_input}", style={'color': 'red'}), "", ""
-    else:
-        instructions['messages'] = [HumanMessage(content=secured_input)]
+
+    # The "messages" key provides the user input as a list of HumanMessage objects for the LLM chain invocation.
+    instructions={
+        "messages": [HumanMessage(content=secured_input if secured_input else user_input)],
+        "data": csv_string,
+        "dataframe": 'cleaned_df'
+    }
 
     response = chain.invoke(instructions)
     res_output = response.content
