@@ -29,7 +29,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
 MODE = os.getenv("MODE", "development").lower() # "development" or "production"
 MAX_INPUT_LENGTH = 1000
-BLOCKED_PATTERNS = ["ignore", "disregard", "forget", "repeat back", "show me the prompt", "new instructions", "override", "pretend", "bypass","you are now", "system message","system:", "assistant:", "user:", "reset", "override"]
+BLOCKED_PATTERNS = ["ignore", "disregard", "forget", "repeat back", "show me the prompt", "new instructions", "override", "pretend", "bypass","you are now", "system message","system:", "assistant:", "user:", "reset"]
 
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable not set.")
@@ -232,7 +232,7 @@ def is_similar(a, b, threshold=0.8):
 def secure_user_input(user_input, system_prompt):
     if len(user_input) > MAX_INPUT_LENGTH:
         return False, "Input too long. Please shorten your request."
-    if any(pat in user_input for pat in BLOCKED_PATTERNS):
+    if any(pat in user_input.lower() for pat in BLOCKED_PATTERNS):
         return False, "Input contains blocked phrases. Please rephrase."
     if is_similar(user_input, system_prompt):
         return False, "Input too similar to system prompt. Please rephrase."
@@ -411,7 +411,7 @@ def create_graph(_, user_input, selected_language):
     prompt = get_prompt(selected_language)
     chain = prompt | llm
 
-    prompt_str = prompt.format_messages(data=csv_string, dataframe='cleaned_df',messages= [HumanMessage(content=user_input)])[0].content
+    prompt_str = prompt.format_messages(data=csv_string, dataframe='cleaned_df', messages=[HumanMessage(content=user_input)])[0].content
 
     is_secure, secured_input = secure_user_input(user_input, prompt_str)
     if not is_secure:
