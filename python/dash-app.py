@@ -23,9 +23,12 @@ import pg8000
 
 load_dotenv()
 
+## CONFIGURATION AND CONSTANTS
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
 MODE = os.getenv("MODE", "development").lower() # "development" or "production"
+MAX_INPUT_LENGTH = 1000
+BLOCKED_PATTERNS = ["ignore", "disregard", "forget", "repeat back", "show me the prompt", "new instructions", "override", "pretend", "bypass","you are now", "system message","system:", "assistant:", "user:", "reset", "override"]
 
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable not set.")
@@ -222,6 +225,21 @@ def get_param_options(param=None, add_all=True, dataframe=df):
         param_options.insert(0, {'label': 'All', 'value': 'all'})
     return param_options
 
+def is_similar(a, b, threshold=0.8):
+    from difflib import SequenceMatcher
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio() > threshold
+
+def secure_user_input(user_input, system_prompt):
+    if len(user_input) > MAX_INPUT_LENGTH:
+        return False, "Input too long. Please shorten your request."
+    if any(pat in user_input for pat in BLOCKED_PATTERNS):
+        return False, "Input contains blocked phrases. Please rephrase."
+    if is_similar(user_input, system_prompt):
+        return False, "Input too similar to system prompt. Please rephrase."
+    # Optionally sanitize
+    sanitized = re.sub(r"```|system:|assistant:|user:", "", user_input, flags=re.IGNORECASE)
+    return True, sanitized
+
 county_options = get_param_options('county')
 pollutant_options = get_param_options('parameter', add_all=False)
 
@@ -393,11 +411,20 @@ def create_graph(_, user_input, selected_language):
     prompt = get_prompt(selected_language)
     chain = prompt | llm
 
-    response = chain.invoke({
+    instructions={
         "messages": [HumanMessage(content=user_input)],
         "data": csv_string,
         "dataframe": 'cleaned_df'
-    })
+    }
+    prompt_str = prompt.format_messages(data=csv_string, dataframe='cleaned_df',messages= [HumanMessage(content=user_input)])[0].content
+
+    is_secure, secured_input = secure_user_input(user_input, prompt_str)
+    if not is_secure:
+        return html.Div(f"Input validation failed: {secured_input}", style={'color': 'red'}), "", ""
+    else:
+        instructions['messages'] = [HumanMessage(content=secured_input)]
+
+    response = chain.invoke(instructions)
     res_output = response.content
 
     if selected_language == "R":
