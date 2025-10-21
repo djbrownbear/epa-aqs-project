@@ -1,5 +1,4 @@
 import re
-from difflib import SequenceMatcher
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,6 +9,9 @@ import plotly.express as px
 import pandas as pd
 from pathlib import Path
 from plotly import graph_objects as go
+
+from utils import (get_param_options, get_fig_from_code, get_code_header_title,filter_df, load_air_quality_df, secure_user_input)
+from constants import (GEMINI_API_KEY, CONNECTION_TYPE, MODE)
 
 import os
 from dotenv import load_dotenv
@@ -23,13 +25,6 @@ from google.cloud.sql.connector import Connector, IPTypes
 import pg8000
 
 load_dotenv()
-
-## CONFIGURATION AND CONSTANTS
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
-MODE = os.getenv("MODE", "development").lower() # "development" or "production"
-MAX_INPUT_LENGTH = 1000
-BLOCKED_PATTERNS = ["ignore", "disregard", "forget", "repeat back", "show me the prompt", "new instructions", "override", "pretend", "bypass","you are now", "system message","system:", "assistant:", "user:", "reset"]
 
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable not set.")
@@ -124,22 +119,8 @@ elif CONNECTION_TYPE == "github_raw":
 else:
     raise ValueError("Unsupported connection type specified.")
 
-# If the table doesn't exist, upload the CSV
-if CONNECTION_TYPE in ["mysql", "sqlite", "cloud_sql"]:
-    with engine.begin() as conn:
-        if not inspect(conn).has_table(table_name):
-            csv_df = pd.read_csv(data_path)
-            csv_df.to_sql(table_name, conn, index=False, if_exists="replace", chunksize=1000)
-            print(f"Uploaded data to table '{table_name}'.")
-
-if CONNECTION_TYPE == "github_raw":
-    df = pd.read_csv(pd.compat.StringIO(download.decode('utf-8')), index_col=0)
-    cleaned_df = pd.read_csv(pd.compat.StringIO(cleaned_download.decode('utf-8')))
-elif CONNECTION_TYPE in ["mysql", "sqlite", "cloud_sql"]:
-    # Load your dataset from the database
-    df = pd.read_sql(f"SELECT * FROM {table_name}", engine)
-else:
-    raise ValueError("Unsupported connection type specified.")
+# LOAD DATA
+df,cleaned_df = load_air_quality_df(CONNECTION_TYPE, engine, table_name, download if CONNECTION_TYPE == "github_raw" else None, cleaned_download if CONNECTION_TYPE == "github_raw" else None)
 
 # Basic preprocessing (adjust column names as needed)
 df['date'] = pd.to_datetime(df['date'])
@@ -179,9 +160,6 @@ cleaned_df = df.groupby(cleaned_groupby_cols).agg(cleaned_agg_dict).reset_index(
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
 
-def get_code_header_title(selected_language):
-    return f'Here is the code to create the graph using {selected_language}:'
-
 def get_prompt(selected_language):
     if selected_language == "R":
         return ChatPromptTemplate.from_messages([
@@ -215,33 +193,13 @@ def get_prompt(selected_language):
             MessagesPlaceholder(variable_name="messages"),
         ])
 
-def get_fig_from_code(code):
-    local_vars = {}
-    exec(code, {"cleaned_df": cleaned_df, "px": px, "go": go, "pd": pd}, local_vars)
-    return local_vars.get('fig', None)
+# def get_fig_from_code(code):
+#     local_vars = {}
+#     exec(code, {"cleaned_df": cleaned_df, "px": px, "go": go, "pd": pd}, local_vars)
+#     return local_vars.get('fig', None)
 
-def get_param_options(param=None, add_all=True, dataframe=df):
-    param_options = [{'label': str(p), 'value': p} for p in sorted(dataframe[str(param)].unique())]
-    if add_all:
-        param_options.insert(0, {'label': 'All', 'value': 'all'})
-    return param_options
-
-def is_similar(a, b, threshold=0.8):
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio() > threshold
-
-def secure_user_input(user_input, system_prompt):
-    if len(user_input) > MAX_INPUT_LENGTH:
-        return False, "Input too long. Please shorten your request."
-    if any(pat in user_input.lower() for pat in BLOCKED_PATTERNS):
-        return False, "Input contains blocked phrases. Please rephrase."
-    if is_similar(user_input, system_prompt):
-        return False, "Input too similar to system prompt. Please rephrase."
-    # Optionally sanitize
-    sanitized = re.sub(r"```|system:|assistant:|user:", "", user_input, flags=re.IGNORECASE)
-    return True, sanitized
-
-county_options = get_param_options('county')
-pollutant_options = get_param_options('parameter', add_all=False)
+county_options = get_param_options('county', dataframe=cleaned_df)
+pollutant_options = get_param_options('parameter', add_all=False, dataframe=cleaned_df)
 
 app = dash.Dash(__name__)
 server = app.server # Expose the server variable for deployments
@@ -434,7 +392,7 @@ def create_graph(_, user_input, selected_language):
         if py_match:
             code_block = py_match.group(1).strip()
             cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
-            fig = get_fig_from_code(cleaned_code)
+            fig = get_fig_from_code(cleaned_code, cleaned_df, px, go, pd)
         else:
             fig = None
         r_code = r_match.group(1).strip() if r_match else "No R code found."
@@ -445,7 +403,7 @@ def create_graph(_, user_input, selected_language):
         if py_match:
             code_block = py_match.group(1).strip()
             cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
-            fig = get_fig_from_code(cleaned_code)
+            fig = get_fig_from_code(cleaned_code, cleaned_df, px, go, pd)
             return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```python\n{code_block}\n```') if fig else "No Python figure found."
         else:
             return "No code block found in the response.", "", res_output
