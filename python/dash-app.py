@@ -67,7 +67,7 @@ else:
     raise ValueError("Unsupported connection type specified.")
 
 # LOAD DATA
-df,cleaned_df = load_air_quality_df(CONNECTION_TYPE, engine, table_name, download if CONNECTION_TYPE == "github_raw" else None, cleaned_download if CONNECTION_TYPE == "github_raw" else None)
+df, cleaned_df = load_air_quality_df(CONNECTION_TYPE, engine, table_name, download if CONNECTION_TYPE == "github_raw" else None, cleaned_download if CONNECTION_TYPE == "github_raw" else None)
 
 # Basic preprocessing (adjust column names as needed)
 df['date'] = pd.to_datetime(df['date'])
