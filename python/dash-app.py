@@ -10,7 +10,7 @@ import pandas as pd
 from pathlib import Path
 from plotly import graph_objects as go
 
-from utils import (get_param_options, get_fig_from_code, get_code_header_title,filter_df, load_air_quality_df, secure_user_input, get_db_engine)
+from utils import (get_param_options, get_fig_from_code, get_code_header_title, filter_df, load_air_quality_df, secure_user_input, get_db_engine)
 from constants import (GEMINI_API_KEY, CONNECTION_TYPE)
 
 import os
