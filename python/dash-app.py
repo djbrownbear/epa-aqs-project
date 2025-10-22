@@ -247,7 +247,7 @@ def update_time_series(selected_pollutant, selected_county):
 )
 def update_distribution(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant)
+        filtered = filter_df(df=df, pollutant=selected_pollutant)
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -256,7 +256,7 @@ def update_distribution(selected_pollutant, selected_county):
         )
         return fig
     else:
-        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant, counties=selected_county)
+        filtered = filter_df(df=df, pollutant=selected_pollutant, counties=selected_county)
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -272,9 +272,9 @@ def update_distribution(selected_pollutant, selected_county):
 )
 def update_map(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant)
+        filtered = filter_df(df=df, pollutant=selected_pollutant)
     else:
-        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant, counties=selected_county)
+        filtered = filter_df(df=df, pollutant=selected_pollutant, counties=selected_county)
 
     size_col = 'arithmetic_mean'
 
