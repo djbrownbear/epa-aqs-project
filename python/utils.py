@@ -3,8 +3,6 @@ import pandas as pd
 import re
 from datetime import datetime as dt
 from difflib import SequenceMatcher
-import pandas as pd
-
 import sqlalchemy
 
 # POSTGRESQL IMPORTS
