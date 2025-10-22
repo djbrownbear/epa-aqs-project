@@ -3,7 +3,14 @@ import pandas as pd
 import re
 from datetime import datetime as dt
 from difflib import SequenceMatcher
-from constants import CONNECTION_TYPE, MAX_INPUT_LENGTH, BLOCKED_PATTERNS
+import pandas as pd
+
+import sqlalchemy
+
+# POSTGRESQL IMPORTS
+from google.cloud.sql.connector import Connector, IPTypes
+
+from constants import MAX_INPUT_LENGTH, BLOCKED_PATTERNS
 
 def save_json_to_file(data, filename="../assets/air_quality_data.json"):
     """Save JSON data to a file."""
@@ -139,7 +146,7 @@ def initialize_db_data(engine, inspect, table_name, data_path, connection_type):
     Initialize the database with data from a CSV file if the table doesn't exist.
     """
     # If the table doesn't exist, upload the CSV
-    if connection_type in ["mysql", "sqlite", "cloud_sql"]:
+    if connection_type in ["mysql", "sqlite", "cloud_sql", "postgresql"]:
         with engine.begin() as conn:
             if not inspect(conn).has_table(table_name):
                 csv_df = pd.read_csv(data_path)
@@ -149,17 +156,15 @@ def initialize_db_data(engine, inspect, table_name, data_path, connection_type):
 def load_air_quality_df(connection_type, engine=None, table_name=None, download=None, cleaned_download=None):
     """
     Load the air quality dataframe based on the connection type.
-    Supports: 'github_raw', 'mysql', 'sqlite', 'cloud_sql'.
+    Supports: 'github_raw', 'mysql', 'sqlite', 'postgresql'.
     Returns: (df, cleaned_df)
     """
-    import pandas as pd
-
     if connection_type == "github_raw":
         if download is None or cleaned_download is None:
             raise ValueError("Download bytes required for github_raw connection.")
         df = pd.read_csv(pd.compat.StringIO(download.decode('utf-8')), index_col=0)
         cleaned_df = pd.read_csv(pd.compat.StringIO(cleaned_download.decode('utf-8')))
-    elif connection_type in ["mysql", "sqlite", "cloud_sql"]:
+    elif connection_type in ["mysql", "sqlite", "postgresql", "cloud_sql"]:
         if engine is None or table_name is None:
             raise ValueError("Engine and table_name required for SQL connections.")
         df = pd.read_sql(f"SELECT * FROM {table_name}", engine)
@@ -167,3 +172,71 @@ def load_air_quality_df(connection_type, engine=None, table_name=None, download=
     else:
         raise ValueError("Unsupported connection type specified.")
     return df, cleaned_df
+
+def get_db_engine(
+    db_type="sqlite",
+    db_name=None,
+    db_user=None,
+    db_pass=None,
+    db_host=None,
+    cloud_sql_instance=None,
+    use_cloud_sql_connector=False,
+    connector=None,
+    creator=None,
+):
+    """
+    Returns a SQLAlchemy engine for the specified database type.
+    Supports: sqlite, mysql, postgresql (with optional Cloud SQL connector).
+    """
+    if db_type == "sqlite":
+        db_path = db_name or "epa_aqs_data.db"
+        return sqlalchemy.create_engine(f"sqlite:///{db_path}")
+
+    elif db_type == "mysql":
+        db_url = f"mysql+mysqlconnector://{db_user}:{db_pass}@{db_host}/{db_user}${db_name}"
+        return sqlalchemy.create_engine(db_url)
+
+    elif db_type == "postgresql":
+        # use the Cloud SQL Python Connector for the connection.
+        connector = Connector(refresh_strategy="LAZY")
+        creator = get_cloud_sql_creator(
+            connector, cloud_sql_instance=db_host, db_user=db_user, db_pass=db_pass, db_name=db_name
+        )
+        if use_cloud_sql_connector and creator:
+            return sqlalchemy.create_engine(
+                "postgresql+pg8000://",
+                creator=creator
+            )
+        else:
+            # Validate required parameters for fallback connection
+            if not all([db_user, db_pass, db_host, db_name]):
+                raise ValueError("db_user, db_pass, db_host, and db_name must be provided for PostgreSQL fallback connection.")
+            db_url = f"postgresql+psycopg2://{db_user}:{db_pass}@{db_host}/{db_name}"
+            return sqlalchemy.create_engine(db_url)
+
+def get_cloud_sql_creator(
+    connector,
+    cloud_sql_instance,
+    db_user,
+    db_pass,
+    db_name,
+    ip_type=IPTypes.PUBLIC
+):
+    """
+    Returns a creator function for Cloud SQL connections.
+
+    The returned function provides all necessary connection details (database, user, password, host)
+    via the connector.connect method, which is compatible with SQLAlchemy's 'creator' argument.
+    """
+    def getconn():
+        conn = connector.connect(
+            cloud_sql_instance,
+            "pg8000",
+            user=db_user,
+            password=db_pass,
+            db=db_name,
+            ip_type=ip_type
+        )
+        return conn
+    return getconn
+
