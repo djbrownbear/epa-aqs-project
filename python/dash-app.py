@@ -17,12 +17,6 @@ import os
 from dotenv import load_dotenv
 
 import requests
-import sqlalchemy
-from sqlalchemy import inspect
-
-# POSTGRESQL IMPORTS
-from google.cloud.sql.connector import Connector, IPTypes
-import pg8000
 
 load_dotenv()
 
@@ -33,68 +27,6 @@ data_path = Path("data/combined_data_20251006.csv")
 filename = data_path.name
 
 # DATABASE CONNECTION SETUP
-
-def create_mysql_engine(mode: str) -> sqlalchemy.engine.base.Engine:
-
-    # MYSQL WITH SQLALCHEMY
-    DB_USER = os.getenv("MYSQL_DB_USER")
-    DB_PASS = os.getenv("MYSQL_DB_PASS")
-    DB_NAME = os.getenv("MYSQL_DB_NAME")
-    DB_HOST = os.getenv("MYSQL_DB_HOST")
-
-    if mode == "production":
-        db_url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_USER}${DB_NAME}"
-    else: 
-        local_port = 3306
-        db_url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASS}@localhost:{local_port}/{DB_USER}${DB_NAME}"
-
-    engine = sqlalchemy.create_engine(db_url)
-    return engine
-
-# POSTGRESQL WITH CLOUD SQL CONNECTOR
-def connect_with_connector() -> sqlalchemy.engine.base.Engine:
-    """
-    Initializes a connection pool for a Cloud SQL instance of Postgres.
-
-    Uses the Cloud SQL Python Connector package.
-    """
-    # Note: Saving credentials in environment variables is convenient, but not
-    # secure - consider a more secure solution such as
-    # Cloud Secret Manager (https://cloud.google.com/secret-manager) to help
-    # keep secrets safe.
-
-    instance_connection_name = os.environ[
-        "CLOUD_SQL_DB_HOST"
-    ]  # e.g. 'project:region:instance'
-    db_user = os.environ["CLOUD_SQL_DB_USER"]  # e.g. 'my-db-user'
-    db_pass = os.environ["CLOUD_SQL_DB_PASS"]  # e.g. 'my-db-password'
-    db_name = os.environ["CLOUD_SQL_DB_NAME"]  # e.g. 'my-database'
-
-    ip_type = IPTypes.PRIVATE if os.environ.get("PRIVATE_IP") else IPTypes.PUBLIC
-
-    # initialize Cloud SQL Python Connector object
-    connector = Connector(refresh_strategy="LAZY")
-
-    def getconn() -> pg8000.dbapi.Connection:
-        conn: pg8000.dbapi.Connection = connector.connect(
-            instance_connection_name,
-            "pg8000",
-            user=db_user,
-            password=db_pass,
-            db=db_name,
-            ip_type=ip_type,
-        )
-        return conn
-
-    # The Cloud SQL Python Connector can be used with SQLAlchemy
-    # using the 'creator' argument to 'create_engine'
-    pool = sqlalchemy.create_engine(
-        "postgresql+pg8000://",
-        creator=getconn,
-        # ...
-    )
-    return pool
-
 if CONNECTION_TYPE == "mysql":
     engine = get_db_engine(
         db_type="mysql",
