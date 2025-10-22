@@ -1,5 +1,4 @@
 import re
-from difflib import SequenceMatcher
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -11,25 +10,15 @@ import pandas as pd
 from pathlib import Path
 from plotly import graph_objects as go
 
+from utils import (get_param_options, get_fig_from_code, get_code_header_title, filter_df, load_air_quality_df, secure_user_input, get_db_engine)
+from constants import (GEMINI_API_KEY, CONNECTION_TYPE)
+
 import os
 from dotenv import load_dotenv
 
 import requests
-import sqlalchemy
-from sqlalchemy import inspect
-
-# POSTGRESQL IMPORTS
-from google.cloud.sql.connector import Connector, IPTypes
-import pg8000
 
 load_dotenv()
-
-## CONFIGURATION AND CONSTANTS
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
-MODE = os.getenv("MODE", "development").lower() # "development" or "production"
-MAX_INPUT_LENGTH = 1000
-BLOCKED_PATTERNS = ["ignore", "disregard", "forget", "repeat back", "show me the prompt", "new instructions", "override", "pretend", "bypass","you are now", "system message","system:", "assistant:", "user:", "reset"]
 
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable not set.")
@@ -38,77 +27,30 @@ data_path = Path("data/combined_data_20251006.csv")
 filename = data_path.name
 
 # DATABASE CONNECTION SETUP
-
-def create_mysql_engine(mode: str) -> sqlalchemy.engine.base.Engine:
-
-    # MYSQL WITH SQLALCHEMY
-    DB_USER = os.getenv("MYSQL_DB_USER")
-    DB_PASS = os.getenv("MYSQL_DB_PASS")
-    DB_NAME = os.getenv("MYSQL_DB_NAME")
-    DB_HOST = os.getenv("MYSQL_DB_HOST")
-
-    if mode == "production":
-        db_url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_USER}${DB_NAME}"
-    else: 
-        local_port = 3306
-        db_url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASS}@localhost:{local_port}/{DB_USER}${DB_NAME}"
-
-    engine = sqlalchemy.create_engine(db_url)
-    return engine
-
-# POSTGRESQL WITH CLOUD SQL CONNECTOR
-def connect_with_connector() -> sqlalchemy.engine.base.Engine:
-    """
-    Initializes a connection pool for a Cloud SQL instance of Postgres.
-
-    Uses the Cloud SQL Python Connector package.
-    """
-    # Note: Saving credentials in environment variables is convenient, but not
-    # secure - consider a more secure solution such as
-    # Cloud Secret Manager (https://cloud.google.com/secret-manager) to help
-    # keep secrets safe.
-
-    instance_connection_name = os.environ[
-        "CLOUD_SQL_DB_HOST"
-    ]  # e.g. 'project:region:instance'
-    db_user = os.environ["CLOUD_SQL_DB_USER"]  # e.g. 'my-db-user'
-    db_pass = os.environ["CLOUD_SQL_DB_PASS"]  # e.g. 'my-db-password'
-    db_name = os.environ["CLOUD_SQL_DB_NAME"]  # e.g. 'my-database'
-
-    ip_type = IPTypes.PRIVATE if os.environ.get("PRIVATE_IP") else IPTypes.PUBLIC
-
-    # initialize Cloud SQL Python Connector object
-    connector = Connector(refresh_strategy="LAZY")
-
-    def getconn() -> pg8000.dbapi.Connection:
-        conn: pg8000.dbapi.Connection = connector.connect(
-            instance_connection_name,
-            "pg8000",
-            user=db_user,
-            password=db_pass,
-            db=db_name,
-            ip_type=ip_type,
-        )
-        return conn
-
-    # The Cloud SQL Python Connector can be used with SQLAlchemy
-    # using the 'creator' argument to 'create_engine'
-    pool = sqlalchemy.create_engine(
-        "postgresql+pg8000://",
-        creator=getconn,
-        # ...
-    )
-    return pool
-
 if CONNECTION_TYPE == "mysql":
-    engine = create_mysql_engine(MODE)
+    engine = get_db_engine(
+        db_type="mysql",
+        db_name=os.getenv("MYSQL_DB_NAME", None),
+        db_user=os.getenv("MYSQL_DB_USER", None),
+        db_pass=os.getenv("MYSQL_DB_PASS", None),
+        db_host=os.getenv("MYSQL_DB_HOST_LOCAL", None)
+    )
     table_name = os.getenv("MYSQL_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "cloud_sql":
-    engine = connect_with_connector()
+    engine = get_db_engine(
+        db_type="postgresql",
+        db_name=os.getenv("CLOUD_SQL_DB_NAME", None),
+        db_user=os.getenv("CLOUD_SQL_DB_USER", None),
+        db_pass=os.getenv("CLOUD_SQL_DB_PASS", None),
+        db_host=os.getenv("CLOUD_SQL_DB_HOST", None),
+        use_cloud_sql_connector=True
+    )
     table_name = os.getenv("CLOUD_SQL_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "sqlite":
-    db_path = "epa_aqs_data.db"
-    engine = sqlalchemy.create_engine(f"sqlite:///{db_path}")
+    engine = get_db_engine(
+        db_type="sqlite",
+        db_name=os.getenv("SQLITE_DB_PATH", "epa_aqs_data.db")
+    )
     table_name = os.getenv("SQLITE_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "github_raw":
     # For GitHub raw CSV access, we won't use SQLAlchemy
@@ -124,22 +66,8 @@ elif CONNECTION_TYPE == "github_raw":
 else:
     raise ValueError("Unsupported connection type specified.")
 
-# If the table doesn't exist, upload the CSV
-if CONNECTION_TYPE in ["mysql", "sqlite", "cloud_sql"]:
-    with engine.begin() as conn:
-        if not inspect(conn).has_table(table_name):
-            csv_df = pd.read_csv(data_path)
-            csv_df.to_sql(table_name, conn, index=False, if_exists="replace", chunksize=1000)
-            print(f"Uploaded data to table '{table_name}'.")
-
-if CONNECTION_TYPE == "github_raw":
-    df = pd.read_csv(pd.compat.StringIO(download.decode('utf-8')), index_col=0)
-    cleaned_df = pd.read_csv(pd.compat.StringIO(cleaned_download.decode('utf-8')))
-elif CONNECTION_TYPE in ["mysql", "sqlite", "cloud_sql"]:
-    # Load your dataset from the database
-    df = pd.read_sql(f"SELECT * FROM {table_name}", engine)
-else:
-    raise ValueError("Unsupported connection type specified.")
+# LOAD DATA
+df, cleaned_df = load_air_quality_df(CONNECTION_TYPE, engine, table_name, download if CONNECTION_TYPE == "github_raw" else None, cleaned_download if CONNECTION_TYPE == "github_raw" else None)
 
 # Basic preprocessing (adjust column names as needed)
 df['date'] = pd.to_datetime(df['date'])
@@ -179,9 +107,6 @@ cleaned_df = df.groupby(cleaned_groupby_cols).agg(cleaned_agg_dict).reset_index(
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
 
-def get_code_header_title(selected_language):
-    return f'Here is the code to create the graph using {selected_language}:'
-
 def get_prompt(selected_language):
     if selected_language == "R":
         return ChatPromptTemplate.from_messages([
@@ -215,33 +140,8 @@ def get_prompt(selected_language):
             MessagesPlaceholder(variable_name="messages"),
         ])
 
-def get_fig_from_code(code):
-    local_vars = {}
-    exec(code, {"cleaned_df": cleaned_df, "px": px, "go": go, "pd": pd}, local_vars)
-    return local_vars.get('fig', None)
-
-def get_param_options(param=None, add_all=True, dataframe=df):
-    param_options = [{'label': str(p), 'value': p} for p in sorted(dataframe[str(param)].unique())]
-    if add_all:
-        param_options.insert(0, {'label': 'All', 'value': 'all'})
-    return param_options
-
-def is_similar(a, b, threshold=0.8):
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio() > threshold
-
-def secure_user_input(user_input, system_prompt):
-    if len(user_input) > MAX_INPUT_LENGTH:
-        return False, "Input too long. Please shorten your request."
-    if any(pat in user_input.lower() for pat in BLOCKED_PATTERNS):
-        return False, "Input contains blocked phrases. Please rephrase."
-    if is_similar(user_input, system_prompt):
-        return False, "Input too similar to system prompt. Please rephrase."
-    # Optionally sanitize
-    sanitized = re.sub(r"```|system:|assistant:|user:", "", user_input, flags=re.IGNORECASE)
-    return True, sanitized
-
-county_options = get_param_options('county')
-pollutant_options = get_param_options('parameter', add_all=False)
+county_options = get_param_options('county', dataframe=cleaned_df)
+pollutant_options = get_param_options('parameter', add_all=False, dataframe=cleaned_df)
 
 app = dash.Dash(__name__)
 server = app.server # Expose the server variable for deployments
@@ -303,10 +203,10 @@ def clear_county_selection(selected_county, options):
 def set_county_options(selected_pollutant, options):
     if not selected_pollutant or selected_pollutant == 'all':
         # If "All Pollutants" is selected, show all counties
-        return get_param_options('county', add_all=True)
+        return get_param_options('county', add_all=True, dataframe=cleaned_df)
     else:
         # Filter counties based on selected pollutant
-        filtered = df[df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=cleaned_df, pollutant=selected_pollutant)
         return get_param_options('county', add_all=True, dataframe=filtered)
 
 @app.callback(
@@ -317,7 +217,7 @@ def set_county_options(selected_pollutant, options):
 def update_time_series(selected_pollutant, selected_county):
     # Handle "All Counties" selection
     if not selected_county or selected_county[0] == 'all':
-        filtered = grouped_df[grouped_df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=grouped_df, pollutant=selected_pollutant)
         fig = px.line(
             filtered,
             x='date',
@@ -330,7 +230,7 @@ def update_time_series(selected_pollutant, selected_county):
         if isinstance(selected_county, str):
             selected_county = [selected_county]
 
-        filtered = grouped_df[grouped_df['county'].isin(selected_county) & (grouped_df['parameter'] == selected_pollutant)]
+        filtered = filter_df(df=grouped_df, pollutant=selected_pollutant, counties=selected_county)
         fig = px.line(
             filtered,
             x='date',
@@ -347,7 +247,7 @@ def update_time_series(selected_pollutant, selected_county):
 )
 def update_distribution(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = df[df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=df, pollutant=selected_pollutant)
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -356,7 +256,7 @@ def update_distribution(selected_pollutant, selected_county):
         )
         return fig
     else:
-        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
+        filtered = filter_df(df=df, pollutant=selected_pollutant, counties=selected_county)
         fig = px.histogram(
             filtered,
             x='arithmetic_mean',
@@ -372,10 +272,10 @@ def update_distribution(selected_pollutant, selected_county):
 )
 def update_map(selected_pollutant, selected_county):
     if not selected_county or selected_county[0] == 'all':
-        filtered = df[df['parameter'] == selected_pollutant]
+        filtered = filter_df(df=df, pollutant=selected_pollutant)
     else:
-        filtered = df[df['county'].isin(selected_county) & (df['parameter'] == selected_pollutant)]
-    
+        filtered = filter_df(df=df, pollutant=selected_pollutant, counties=selected_county)
+
     size_col = 'arithmetic_mean'
 
     # If any values in size_col are negative, disable sizing
@@ -434,7 +334,7 @@ def create_graph(_, user_input, selected_language):
         if py_match:
             code_block = py_match.group(1).strip()
             cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
-            fig = get_fig_from_code(cleaned_code)
+            fig = get_fig_from_code(cleaned_code, cleaned_df, px, go, pd)
         else:
             fig = None
         r_code = r_match.group(1).strip() if r_match else "No R code found."
@@ -445,7 +345,7 @@ def create_graph(_, user_input, selected_language):
         if py_match:
             code_block = py_match.group(1).strip()
             cleaned_code = re.sub(r'(?m)^\s*fig\.show\(\)\s*$', '', code_block)
-            fig = get_fig_from_code(cleaned_code)
+            fig = get_fig_from_code(cleaned_code, cleaned_df, px, go, pd)
             return dcc.Graph(figure=fig), get_code_header_title(selected_language), (f'```python\n{code_block}\n```') if fig else "No Python figure found."
         else:
             return "No code block found in the response.", "", res_output
