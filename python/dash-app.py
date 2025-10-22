@@ -10,7 +10,7 @@ import pandas as pd
 from pathlib import Path
 from plotly import graph_objects as go
 
-from utils import (get_param_options, get_fig_from_code, get_code_header_title,filter_df, load_air_quality_df, secure_user_input)
+from utils import (get_param_options, get_fig_from_code, get_code_header_title,filter_df, load_air_quality_df, secure_user_input, get_db_engine)
 from constants import (GEMINI_API_KEY, CONNECTION_TYPE, MODE)
 
 import os
@@ -96,14 +96,29 @@ def connect_with_connector() -> sqlalchemy.engine.base.Engine:
     return pool
 
 if CONNECTION_TYPE == "mysql":
-    engine = create_mysql_engine(MODE)
+    engine = get_db_engine(
+        db_type="mysql",
+        db_name=os.getenv("MYSQL_DB_NAME", None),
+        db_user=os.getenv("MYSQL_DB_USER", None),
+        db_pass=os.getenv("MYSQL_DB_PASS", None),
+        db_host=os.getenv("MYSQL_DB_HOST_LOCAL", None)
+    )
     table_name = os.getenv("MYSQL_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "cloud_sql":
-    engine = connect_with_connector()
+    engine = get_db_engine(
+        db_type="postgresql",
+        db_name=os.getenv("CLOUD_SQL_DB_NAME", None),
+        db_user=os.getenv("CLOUD_SQL_DB_USER", None),
+        db_pass=os.getenv("CLOUD_SQL_DB_PASS", None),
+        db_host=os.getenv("CLOUD_SQL_DB_HOST", None),
+        use_cloud_sql_connector=True
+    )
     table_name = os.getenv("CLOUD_SQL_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "sqlite":
-    db_path = "epa_aqs_data.db"
-    engine = sqlalchemy.create_engine(f"sqlite:///{db_path}")
+    engine = get_db_engine(
+        db_type="sqlite",
+        db_name=os.getenv("SQLITE_DB_PATH", "epa_aqs_data.db")
+    )
     table_name = os.getenv("SQLITE_TABLE_NAME", "air_quality")
 elif CONNECTION_TYPE == "github_raw":
     # For GitHub raw CSV access, we won't use SQLAlchemy
@@ -192,11 +207,6 @@ def get_prompt(selected_language):
             ),
             MessagesPlaceholder(variable_name="messages"),
         ])
-
-# def get_fig_from_code(code):
-#     local_vars = {}
-#     exec(code, {"cleaned_df": cleaned_df, "px": px, "go": go, "pd": pd}, local_vars)
-#     return local_vars.get('fig', None)
 
 county_options = get_param_options('county', dataframe=cleaned_df)
 pollutant_options = get_param_options('parameter', add_all=False, dataframe=cleaned_df)
