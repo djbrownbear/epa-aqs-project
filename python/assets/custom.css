@@ -509,6 +509,7 @@ small {
 
 .radio-group {
     display: flex;
+    gap: var(--spacing-xs);
     border-radius: var(--radius-md);
     flex-wrap: wrap;
 }
