@@ -187,7 +187,7 @@ app.layout = html.Div([
     ], className='control-panel'),
 
     # AI Output Section
-        dcc.Loading(
+    dcc.Loading(
         html.Div([
             html.Div([
                 html.Details(
