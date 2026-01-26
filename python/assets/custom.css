@@ -201,7 +201,7 @@ textarea:focus-visible {
     height: 3px;
     background: var(--color-primary);
     border-radius: var(--radius-sm);
-    margin: var(--spacing-xl) 0;
+    margin: var(--spacing-md) 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -341,11 +341,11 @@ small {
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-tight);
     color: var(--color-text-primary);
-    margin-top: var(--spacing-xl);
-    margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 3px solid transparent;
-    border-color: var(--color-primary);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    /* padding-bottom: var(--spacing-sm); */
+    /* border-bottom: 3px solid transparent;
+    border-color: var(--color-primary); */
     display: inline-block;
     min-width: 300px;
 }
@@ -356,6 +356,16 @@ small {
     font-weight: var(--font-weight-normal);
     line-height: var(--line-height-relaxed);
     margin-bottom: var(--spacing-md);
+}
+
+.summary-header {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    color: var(--color-text-primary);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    min-width: 300px;
 }
 
 /* ===================================
@@ -394,7 +404,7 @@ small {
 
 .control-group {
     flex: 1;
-    min-width: 200px;
+    min-width: 280px;
 }
 
 /* ===================================
@@ -502,7 +512,6 @@ small {
 
 .radio-group {
     display: flex;
-    gap: var(--spacing-md);
     border-radius: var(--radius-md);
     flex-wrap: wrap;
 }
@@ -635,6 +644,57 @@ textarea::placeholder {
 }
 
 /* ===================================
+   Container
+   =================================== */
+
+   .container {
+    display: inline-block;
+    width: 100%;
+   }
+
+/* ===================================
+   AI Output Grid Layout
+   =================================== */
+
+.ai-output-grid {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: flex-start;
+    width: 100%;
+}
+
+.ai-output-grid > details {
+    flex: 1;
+    min-width: 0; /* Allows flex items to shrink below their content width */
+    max-width: 100%;
+    transition: all var(--transition-base);
+}
+
+/* Collapsed state - take up minimal space */
+.ai-output-grid > details:not([open]) {
+    flex: 0 0 auto;
+    max-width: fit-content;
+}
+
+.ai-output-grid .graph-container,
+.ai-output-grid .code-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Stack on mobile/tablet */
+@media (max-width: 768px) {
+    .ai-output-grid {
+        flex-direction: column;
+    }
+    
+    .ai-output-grid > details {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* ===================================
    Graphs / Visualizations
    =================================== */
 
@@ -751,7 +811,7 @@ textarea::placeholder {
     font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-sm);
     line-height: var(--line-height-normal);
-    margin-top: var(--spacing-lg);
+    /* margin-top: var(--spacing-lg); */
     margin-bottom: 0;
     border: 1px solid var(--color-primary-hover);
     border-bottom: none;
@@ -787,8 +847,20 @@ textarea::placeholder {
 }
 
 .code-container code {
-    color: var(--color-text-secondary);
+    color: var(--color-text-light);
     font-size: var(--font-size-sm);
+}
+
+.hljs {
+    background-color: transparent;
+}
+
+.hljs-regexp, .hljs-string, .hljs-meta .hljs-string {
+    color: var(--color-accent);
+}
+
+.hljs-comment {
+    color: var(--color-secondary-hover);
 }
 
 /* ===================================
@@ -834,6 +906,10 @@ textarea::placeholder {
     
     .radio-group {
         flex-direction: column;
+    }
+
+    .container {
+        grid-template-columns: 1fr;
     }
     
     .graphs-grid {

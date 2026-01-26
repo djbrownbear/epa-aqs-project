@@ -84,9 +84,6 @@ grouped_df = df.groupby(['date','county','parameter']).agg({
     'units_of_measure': 'first'
 }).reset_index()
 
-# df_5_rows = grouped_df.head()
-# csv_string = df_5_rows.to_csv(index=False)
-
 # provide cleaned data for LLM context
 cleaned_groupby_cols = [
     "county",
@@ -190,14 +187,26 @@ app.layout = html.Div([
     ], className='control-panel'),
 
     # AI Output Section
-    dcc.Loading(
+        dcc.Loading(
         html.Div([
-            html.Div(id='output-div', className='graph-container', children=[
-                html.Div("Visualization will appear here. Submit a request to generate a visualization.", className='loading-text')
-            ]),
-            html.H3(id="selected_language-title", className='code-header'),
-            dcc.Markdown(id='generated-code', className='code-container')
-        ], className='mb-lg'),
+            html.Div([
+                html.Details(
+                    open=True,
+                    children=[html.Summary("Visualization Output", className='summary-header'),
+                              html.Div(id='output-div',children=[
+                    html.Div("Visualization will appear here. Submit a request to generate a visualization.", className='loading-text')
+                ], className='graph-container')],
+                className='graph-output-details'),
+                html.Details(
+                    open=True,
+                    children=[html.Summary("Generated Code", className='summary-header'), 
+                    html.Div([
+                        html.H3(id="selected_language-title", className='code-header'),
+                        dcc.Markdown(id='generated-code', className='code-container')
+                    ])], className='code-output-details',
+                )
+            ], className='ai-output-grid')
+        ], className='container mb-lg'),
         type="cube",
         color="#2563eb",
         fullscreen=False
@@ -243,7 +252,7 @@ app.layout = html.Div([
             id='time-series-plot',
             className='graph-container',
             config={
-                "displayModeBar": False,
+                "displayModeBar": True,
                 "responsive": True,
                 "displaylogo": False,
                 "modeBarButtonsToRemove": ['pan2d', 'lasso2d', 'select2d']
@@ -253,7 +262,7 @@ app.layout = html.Div([
             id='distribution-plot',
             className='graph-container',
             config={
-                "displayModeBar": False,
+                "displayModeBar": True,
                 "responsive": True,
                 "displaylogo": False,
                 "modeBarButtonsToRemove": ['pan2d', 'lasso2d', 'select2d']
@@ -263,7 +272,7 @@ app.layout = html.Div([
             id='map-plot',
             className='graph-container',
             config={
-                "displayModeBar": False,
+                "displayModeBar": True,
                 "responsive": True,
                 "displaylogo": False,
                 "scrollZoom": True,
