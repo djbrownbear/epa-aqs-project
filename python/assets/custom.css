@@ -186,10 +186,20 @@ textarea:focus-visible {
     --transition-slow: 350ms ease-in-out;
 }
 
+/* ===================================
+   Divider
+   =================================== */
+
+.divider {
+    height: 1px;
+    background-color: var(--color-border);
+    margin: var(--spacing-xl) 0;
+}
+
 .divider-thick {
     width: 100%;
-    height: 6px;
-    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    height: 3px;
+    background: var(--color-primary);
     border-radius: var(--radius-sm);
     margin: var(--spacing-xl) 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -689,23 +699,6 @@ textarea::placeholder {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-/* ===================================
-   Divider
-   =================================== */
-
-.divider {
-    height: 1px;
-    background-color: var(--color-border);
-    margin: var(--spacing-xl) 0;
-}
-
-.divider-thick {
-    height: 3px;
-    background: var(--color-primary);
-    margin: var(--spacing-xl) 0;
-    border-radius: var(--radius-sm);
 }
 
 /* ===================================
