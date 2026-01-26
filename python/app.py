@@ -31,11 +31,7 @@ with open(csv_filename, "r") as file:
 with open(json_filename, "r") as f:
  json_data = json.load(f)
 
-try:
-    data_section = json_data.get("Data", [])
-except KeyError:
-    data_section = []
-    print("Key 'Data' not found in JSON file.")
+data_section = json_data.get("Data", [])
 
 if data_section:
     df = pd.DataFrame(data_section)

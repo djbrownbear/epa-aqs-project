@@ -284,7 +284,9 @@ small {
     overflow: hidden;
 }
 
-.app-header > h1, h2, h3 {
+.app-header > h1,
+.app-header > h2,
+.app-header > h3 {
     color: var(--color-text-light);
 }
 
