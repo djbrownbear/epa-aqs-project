@@ -8,11 +8,11 @@ import os
 
 # added to handle relative path for JSON file
 # replace with your desired file path
-filename = os.path.join(os.path.dirname(__file__), "my_reports", "combined_data_20251006.csv")
-# filename = os.path.join(os.path.dirname(__file__), "..", "assets", "air_quality_data.json")
+csv_filename = os.path.join(os.path.dirname(__file__), "my_reports", "combined_data_20251006.csv")
+json_filename = os.path.join(os.path.dirname(__file__), "..", "assets", "air_quality_data.json")
 
 # Load data from specified JSON file
-with open(filename, "r") as file:
+with open(csv_filename, "r") as file:
     dtypes = {
         "latitude": float,
         "longitude": float,
@@ -26,13 +26,21 @@ with open(filename, "r") as file:
         "city": str,
         "units_of_measure": str
     }
-    # data = json.load(file)
     data = pd.read_csv(file, dtype=dtypes).to_dict(orient="records")
 
-# Extract the 'Data' section into a DataFrame
-# data_section = data.get("Data", [])
-# df = pd.DataFrame(data_section)
-df = pd.DataFrame(data)
+with open(json_filename, "r") as f:
+ json_data = json.load(f)
+
+try:
+    data_section = json_data.get("Data", [])
+except KeyError:
+    data_section = []
+    print("Key 'Data' not found in JSON file.")
+
+if data_section:
+    df = pd.DataFrame(data_section)
+else:
+    df = pd.DataFrame(data)
 
 df['date'] = pd.to_datetime(df['date'])
 print(df["arithmetic_mean"].isna().sum())
