@@ -84,8 +84,8 @@ grouped_df = df.groupby(['date','county','parameter']).agg({
     'units_of_measure': 'first'
 }).reset_index()
 
-df_5_rows = grouped_df.head()
-csv_string = df_5_rows.to_csv(index=False)
+# df_5_rows = grouped_df.head()
+# csv_string = df_5_rows.to_csv(index=False)
 
 # provide cleaned data for LLM context
 cleaned_groupby_cols = [
@@ -104,6 +104,10 @@ cleaned_agg_dict = {
     'local_site_name': 'first'
 }
 cleaned_df = df.groupby(cleaned_groupby_cols).agg(cleaned_agg_dict).reset_index()
+
+# Use cleaned_df for LLM sample data so columns match what will be executed
+df_5_rows = cleaned_df.head()
+csv_string = df_5_rows.to_csv(index=False)
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
 
@@ -148,41 +152,125 @@ server = app.server # Expose the server variable for deployments
 app.title = "Air Quality Dashboard"
 
 app.layout = html.Div([
-    html.H1("Air Quality Data Dashboard"),
-    html.H2("Using Gemini-2.5 to Generate Visualizations from Natural Language"),
-    html.P("Interactively explore air quality data and generate custom visualizations using natural language."),
-    html.Div([html.Label("Select programming language for code output:"),
-        dcc.RadioItems(id='programming-language-radio',
-                       options=[{'label': 'Python', 'value': 'Python'}, {'label' : 'R', 'value' : 'R'}], value='Python')
-    ]),
-    dcc.Textarea(id='user-input', placeholder='Enter your graph request here...', style={'width': '100%'}),
-    html.Button('Submit', id='submit-button'),
-    dcc.Loading(
-        [html.Div(id='output-div'), html.H3(id="selected_language-title"), dcc.Markdown(id='generated-code')
-         ], type="cube"),
+    # Header Section
+    html.Div([
+        html.H1("Air Quality Data Dashboard"),
+        html.H2("Using Gemini-2.5 to Generate Visualizations from Natural Language"),
+        html.P("Interactively explore air quality data and generate custom visualizations using natural language.")
+    ], className='app-header'),
 
-    html.Br(),
-    html.H2("Predefined Visualizations"),
-    html.P("Explore predefined visualizations of the air quality dataset."),
-    html.Label("Select Pollutant:"),
-    dcc.Dropdown(
-        id='pollutant-dropdown',
-        options=pollutant_options,
-        value=pollutant_options[0]['value'] if pollutant_options else None,
-        multi=False,
-        clearable=False
+    # AI-Powered Visualization Section
+    html.Div([
+        html.Div([
+            html.Label("Select programming language for code output:", className='control-label', htmlFor='programming-language-radio'),
+            dcc.RadioItems(
+                id='programming-language-radio',
+                options=[
+                    {'label': 'Python', 'value': 'Python'},
+                    {'label': 'R', 'value': 'R'}
+                ],
+                value='Python',
+                className='radio-group',
+                inputStyle={"marginRight": "8px"}
+            )
+        ], className='mb-md'),
+
+        html.Div([
+            html.Label("Graph Request:", className='control-label', htmlFor='user-input'),
+            dcc.Textarea(
+                id='user-input',
+                placeholder='Enter your graph request here... (e.g., "Create a scatter plot showing the relationship between PM2.5 and ozone levels")',
+                className='input-field',
+                style={"width": "100%", "minHeight": "60px", "marginBottom": "1rem"}
+            ),
+        ], className='mb-md'),
+
+        html.Button('Generate Visualization', id='submit-button', className='btn btn-primary', style={"marginBottom": "1rem"}),
+        html.Div(id='feedback-message', className='feedback-message', style={"marginBottom": "1rem"}),
+    ], className='control-panel'),
+
+    # AI Output Section
+    dcc.Loading(
+        html.Div([
+            html.Div(id='output-div', className='graph-container', children=[
+                html.Div("Visualization will appear here. Submit a request to generate a visualization.", className='loading-text')
+            ]),
+            html.H3(id="selected_language-title", className='code-header'),
+            dcc.Markdown(id='generated-code', className='code-container')
+        ], className='mb-lg'),
+        type="cube",
+        color="#2563eb",
+        fullscreen=False
     ),
-    html.Label("Select County:"),
-    dcc.Dropdown(
-        id='county-dropdown',
-        options=county_options,
-        value=None,
-        multi=True,
-        clearable=True
-    ),
-    dcc.Graph(id='time-series-plot'),
-    dcc.Graph(id='distribution-plot'),
-    dcc.Graph(id='map-plot')
+
+    # Divider (styled)
+    html.Div(className='divider-thick'),
+
+    # Predefined Visualizations Section
+    html.H2("Predefined Visualizations", className='section-header'),
+    html.P("Explore predefined visualizations of the air quality dataset.", className='section-description'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+                html.Label("Select Pollutant:", className='control-label', htmlFor='pollutant-dropdown'),
+                dcc.Dropdown(
+                    id='pollutant-dropdown',
+                    options=pollutant_options,
+                    value=pollutant_options[0]['value'] if pollutant_options else None,
+                    multi=False,
+                    clearable=False
+                )
+            ], className='control-group'),
+
+            html.Div([
+                html.Label("Select County:", className='control-label', htmlFor='county-dropdown'),
+                dcc.Dropdown(
+                    id='county-dropdown',
+                    options=county_options,
+                    value=None,
+                    multi=True,
+                    clearable=True,
+                    placeholder="Select counties or leave blank for all..."
+                )
+            ], className='control-group')
+        ], className='control-row')
+    ], className='control-panel'),
+
+    # Graphs Section
+    html.Div([
+        dcc.Graph(
+            id='time-series-plot',
+            className='graph-container',
+            config={
+                "displayModeBar": False,
+                "responsive": True,
+                "displaylogo": False,
+                "modeBarButtonsToRemove": ['pan2d', 'lasso2d', 'select2d']
+            }
+        ),
+        dcc.Graph(
+            id='distribution-plot',
+            className='graph-container',
+            config={
+                "displayModeBar": False,
+                "responsive": True,
+                "displaylogo": False,
+                "modeBarButtonsToRemove": ['pan2d', 'lasso2d', 'select2d']
+            }
+        ),
+        dcc.Graph(
+            id='map-plot',
+            className='graph-container',
+            config={
+                "displayModeBar": False,
+                "responsive": True,
+                "displaylogo": False,
+                "scrollZoom": True,
+                "modeBarButtonsToRemove": ['pan2d', 'lasso2d', 'select2d']
+            }
+        )
+    ], className='graphs-grid')
 ])
 
 @app.callback(
@@ -225,7 +313,6 @@ def update_time_series(selected_pollutant, selected_county):
             color='county',
             title="Sample Measurement Over Time (All Counties)"
         )
-        return fig
     else:
         if isinstance(selected_county, str):
             selected_county = [selected_county]
@@ -238,7 +325,26 @@ def update_time_series(selected_pollutant, selected_county):
             color='county',
             title=f"Sample Measurement Over Time (Count{'ies' if len(selected_county) > 1 else 'y'}: {', '.join(selected_county)})"
         )
-        return fig
+    
+    # Mobile-friendly layout adjustments
+    fig.update_layout(
+        font=dict(size=12),
+        title_font_size=14,
+        margin=dict(l=40, r=20, t=40, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=10)
+        ),
+        hovermode='closest'
+    )
+    fig.update_xaxes(tickfont=dict(size=10), title_font_size=11)
+    fig.update_yaxes(tickfont=dict(size=10), title_font_size=11)
+    
+    return fig
 
 @app.callback(
     Output('distribution-plot', 'figure'),
@@ -254,7 +360,6 @@ def update_distribution(selected_pollutant, selected_county):
             nbins=50,
             title="Distribution of Sample Measurement (All Counties)"
         )
-        return fig
     else:
         filtered = filter_df(df=df, pollutant=selected_pollutant, counties=selected_county)
         fig = px.histogram(
@@ -263,7 +368,19 @@ def update_distribution(selected_pollutant, selected_county):
             nbins=50,
             title=f"Distribution of Sample Measurement (Count{'ies' if len(selected_county) > 1 else 'y'}: {', '.join(selected_county)})"
         )
-        return fig
+    
+    # Mobile-friendly layout adjustments
+    fig.update_layout(
+        font=dict(size=12),
+        title_font_size=14,
+        margin=dict(l=40, r=20, t=40, b=40),
+        bargap=0.1,
+        hovermode='closest'
+    )
+    fig.update_xaxes(tickfont=dict(size=10), title_font_size=11)
+    fig.update_yaxes(tickfont=dict(size=10), title_font_size=11)
+    
+    return fig
 
 @app.callback(
     Output('map-plot', 'figure'),
@@ -286,13 +403,30 @@ def update_map(selected_pollutant, selected_county):
         filtered,
         lat='latitude',
         lon='longitude',
-        color='arithmetic_mean',  # or another measurement column
+        color='arithmetic_mean',
         size=size_col,
         hover_name='local_site_name',
         hover_data=['arithmetic_mean', 'date'],
         mapbox_style="open-street-map",
-        title=f"Air Quality Measurements (Pollutant - {selected_pollutant})"
+        title=f"Air Quality Measurements (Pollutant - {selected_pollutant})",
+        zoom=5
     )
+    
+    # Mobile-friendly layout adjustments
+    fig.update_layout(
+        font=dict(size=12),
+        title_font_size=14,
+        margin=dict(l=0, r=0, t=40, b=0),
+        mapbox=dict(
+            zoom=5,
+            center=dict(
+                lat=filtered['latitude'].mean() if not filtered.empty else 37,
+                lon=filtered['longitude'].mean() if not filtered.empty else -120
+            )
+        ),
+        hovermode='closest'
+    )
+    
     return fig
 
 @app.callback(

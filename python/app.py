@@ -8,15 +8,49 @@ import os
 
 # added to handle relative path for JSON file
 # replace with your desired file path
-filename = os.path.join(os.path.dirname(__file__), "..", "assets", "air_quality_data.json")
+filename = os.path.join(os.path.dirname(__file__), "my_reports", "combined_data_20251006.csv")
+# filename = os.path.join(os.path.dirname(__file__), "..", "assets", "air_quality_data.json")
 
 # Load data from specified JSON file
 with open(filename, "r") as file:
-    data = json.load(file)
+    dtypes = {
+        "latitude": float,
+        "longitude": float,
+        "arithmetic_mean": float,
+        "date": str,
+        "first_max_datetime": str,
+        "parameter": str,
+        "local_site_name": str,
+        "state": str,
+        "county": str,
+        "city": str,
+        "units_of_measure": str
+    }
+    # data = json.load(file)
+    data = pd.read_csv(file, dtype=dtypes).to_dict(orient="records")
 
 # Extract the 'Data' section into a DataFrame
-data_section = data.get("Data", [])
-df = pd.DataFrame(data_section)
+# data_section = data.get("Data", [])
+# df = pd.DataFrame(data_section)
+df = pd.DataFrame(data)
+
+df['date'] = pd.to_datetime(df['date'])
+print(df["arithmetic_mean"].isna().sum())
+df.dropna(subset=["arithmetic_mean"], inplace=True)
+
+print(f"DataFrame columns: {df.columns}")
+
+grouped_df = df.groupby(['date','county','parameter']).agg({
+    'arithmetic_mean': 'mean',
+    'local_site_name': 'first',
+    'city': 'first',
+    'state': 'first',
+    'county_code': 'first',
+    'latitude': 'first',
+    'longitude': 'first',
+    'units_of_measure': 'first'
+}).reset_index()
+print(f"Grouped DataFrame columns: {grouped_df.columns}")
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
@@ -50,13 +84,14 @@ app.layout = html.Div([
     [Input("pollutant-dropdown", "value")]
 )
 def update_time_series(selected_pollutant):
-    filtered_df = df[df["parameter"] == selected_pollutant]
-    fig = px.scatter(
+    filtered_df = grouped_df[grouped_df["parameter"] == selected_pollutant]
+    fig = px.line(
         filtered_df,
-        x="first_max_datetime",
+        x="date",
         y="arithmetic_mean",
+        color="county",  # Example size mapping, adjust as needed
         title=f"{selected_pollutant} Levels Over Time",
-        labels={"first_max_datetime": "Date", "arithmetic_mean": "Pollutant Level"},
+        labels={"date": "Date", "arithmetic_mean": "Pollutant Level"},
         hover_data=["local_site_name", "city"]
     )
     return fig
@@ -68,6 +103,7 @@ def update_time_series(selected_pollutant):
 )
 def update_map(selected_pollutant):
     filtered_df = df[df["parameter"] == selected_pollutant]
+    print(filtered_df['arithmetic_mean'])
     fig = px.scatter_mapbox(
         filtered_df,
         lat="latitude",
