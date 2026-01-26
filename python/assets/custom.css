@@ -644,10 +644,10 @@ textarea::placeholder {
    Container
    =================================== */
 
-   .container {
-    display: inline-block;
+.container {
+    display: grid;
     width: 100%;
-   }
+}
 
 /* ===================================
    AI Output Grid Layout
