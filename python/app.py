@@ -8,7 +8,7 @@ import os
 
 # added to handle relative path for JSON file
 # replace with your desired file path
-csv_filename = os.path.join(os.path.dirname(__file__), "my_reports", "combined_data_20251006.csv")
+csv_filename = os.path.join(os.path.dirname(__file__), "data", "combined_data_20251006.csv")
 json_filename = os.path.join(os.path.dirname(__file__), "..", "assets", "air_quality_data.json")
 
 # Load data from specified JSON file
@@ -39,14 +39,12 @@ except KeyError:
 
 if data_section:
     df = pd.DataFrame(data_section)
+    df['date'] = pd.to_datetime(df['first_max_datetime']).dt.date
 else:
     df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'])
 
-df['date'] = pd.to_datetime(df['date'])
-print(df["arithmetic_mean"].isna().sum())
 df.dropna(subset=["arithmetic_mean"], inplace=True)
-
-print(f"DataFrame columns: {df.columns}")
 
 grouped_df = df.groupby(['date','county','parameter']).agg({
     'arithmetic_mean': 'mean',
