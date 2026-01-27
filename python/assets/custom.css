@@ -659,13 +659,16 @@ textarea::placeholder {
     gap: var(--spacing-lg);
     align-items: flex-start;
     width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .ai-output-grid > details {
     flex: 1;
     min-width: 0; /* Allows flex items to shrink below their content width */
-    max-width: 100%;
+    max-width: 50%;
     transition: all var(--transition-base);
+    overflow: hidden;
 }
 
 /* Collapsed state - take up minimal space */
@@ -678,17 +681,26 @@ textarea::placeholder {
 .ai-output-grid .code-container {
     width: 100%;
     max-width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
 }
 
 /* Stack on mobile/tablet */
 @media (max-width: 768px) {
     .ai-output-grid {
         flex-direction: column;
+        gap: var(--spacing-md);
     }
     
     .ai-output-grid > details {
         width: 100%;
         max-width: 100%;
+        overflow: visible;
+    }
+    
+    .ai-output-grid .graph-container,
+    .ai-output-grid .code-container {
+        padding: var(--spacing-xs);
     }
 }
 
