@@ -700,7 +700,7 @@ textarea::placeholder {
     
     .ai-output-grid .graph-container,
     .ai-output-grid .code-container {
-        padding: var(--spacing-sm);
+        padding: var(--spacing-xs);
         overflow-x: auto;
     }
 }
