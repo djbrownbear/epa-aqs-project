@@ -1,5 +1,7 @@
 # EPA Air Quality Dashboard
 
+[![CI](https://github.com/djbrownbear/epa-aqs-project/actions/workflows/ci.yml/badge.svg)](https://github.com/djbrownbear/epa-aqs-project/actions/workflows/ci.yml)
+
 An interactive dashboard for U.S. EPA air quality data, with a natural-language chart builder powered by Gemini. Ask for a chart in plain English, get an interactive Plotly figure plus the Python or R code that reproduces it.
 
 **Live demo:** <https://djbrownbear.pythonanywhere.com>

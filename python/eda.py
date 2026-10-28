@@ -1,8 +1,8 @@
-import pandas as pd
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import load_json_to_dataframe
+from utils import load_json_to_dataframe  # noqa: E402 (needs the sys.path entry above)
+
 
 def analyze_air_quality_data(df):
     """Perform exploratory data analysis on the air quality DataFrame."""
@@ -14,12 +14,12 @@ def analyze_air_quality_data(df):
 
     # Add more analysis as needed
 
+
 if __name__ == "__main__":
-  # Example usage
-  header_df = load_json_to_dataframe(record_path="Header")
-  print("Header DataFrame:")
-  print(header_df)
+    # Example usage
+    header_df = load_json_to_dataframe(record_path="Header")
+    print("Header DataFrame:")
+    print(header_df)
 
-  df = load_json_to_dataframe(record_path="Data")
-  analyze_air_quality_data(df)
-
+    df = load_json_to_dataframe(record_path="Data")
+    analyze_air_quality_data(df)
