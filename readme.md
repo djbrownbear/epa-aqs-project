@@ -76,3 +76,7 @@ assets/              EPA AQS API reference notes, EDA notebooks, sample API resp
 ## Data source
 
 Data comes from the U.S. EPA [Air Quality System (AQS) API](https://aqs.epa.gov/aqsweb/documents/data_api.html). To pull your own data you need a free API key. See [assets/epa-aqs-api.md](assets/epa-aqs-api.md) for sign-up, sample responses, request limits and EDA notes, and [`prompt.md`](prompt.md) for the prompts used while building the API client.
+
+## License
+
+[MIT](LICENSE)
