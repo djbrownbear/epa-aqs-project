@@ -109,11 +109,6 @@ def get_param_options(param=None, add_all=True, dataframe=None):
         param_options.insert(0, {'label': 'All', 'value': 'all'})
     return param_options
 
-def get_fig_from_code(code, cleaned_df, px, go, pd):
-    local_vars = {}
-    exec(code, {"cleaned_df": cleaned_df, "px": px, "go": go, "pd": pd}, local_vars)
-    return local_vars.get('fig', None)
-
 def filter_df(df=None, pollutant=None, counties=None):
     if df is None:
         raise ValueError("DataFrame 'df' must be provided.")
