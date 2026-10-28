@@ -13,17 +13,38 @@
 
 In the desired environment, run `pip install -r requirements.txt` to install the required dependencies.
 
-## Start the Dash/Plotly App
+## Run the Dashboard
 
-`python app.py`
+`dash-app.py` is the full dashboard with the natural-language chart builder (the version deployed to PythonAnywhere). It needs a [Gemini API key](https://aistudio.google.com/apikey) and a data source.
 
-or
+The quickest setup uses SQLite and the bundled sample data. Create `python/.env` with just these two lines. Leave out the template's empty variables, because an empty value (for example `SQLITE_TABLE_NAME=`) overrides the default.
 
-`python3 app.py`
+```bash
+GEMINI_API_KEY=your-key
+DB_CONNECTION_TYPE=sqlite
+```
 
-Now, in the browser you can view the Dash application.
+Load the sample data into `epa_aqs_data.db` (once), then start the app from the `python` directory:
+
+```bash
+python -c "import sqlalchemy as sa, utils; e = sa.create_engine('sqlite:///epa_aqs_data.db'); utils.initialize_db_data(e, sa.inspect, 'air_quality', 'data/combined_data_20251006.csv', 'sqlite')"
+python dash-app.py
+```
+
+Other data sources are selected with `DB_CONNECTION_TYPE`: `mysql`, `cloud_sql` (PostgreSQL through the Cloud SQL connector) or `github_raw`. See `.env.template` for the variables each one reads.
+
+`app.py` is an earlier, simpler dashboard that reads the sample CSV directly and needs no API key: `python app.py`.
 
 By default, the app will run locally at <http://127.0.0.1:8050/>
+
+## Run the Tests
+
+```bash
+pip install pytest
+pytest
+```
+
+The tests use a fake chat model, so they need no API key.
 
 NOTE: The sample data, `air_quality_data.json`, is pulled from the following date range 2019-01-01 to 2019-12-31 with California and Alameda County as the respective State and County filters.
 
@@ -58,8 +79,8 @@ A Juypter Notebook is available to explore within the `assets` directory.
 
 ### Columns Available Within the Sample Dataset
 
-![alt text](assets/images/eda_columns_info.png)
+![alt text](../assets/images/eda_columns_info.png)
 
 ### Heatmap of Correlation Between Variables Within the Sample Dataset
 
-![alt text](assets/images/eda_example.png)
+![alt text](../assets/images/eda_example.png)
