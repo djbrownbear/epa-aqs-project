@@ -32,6 +32,9 @@ def dash_app(tmp_path_factory):
     old_cwd = os.getcwd()
     os.chdir(PYTHON_DIR)
     try:
+        import constants
+
+        importlib.reload(constants)  # constants reads the env at import time
         spec = importlib.util.spec_from_file_location("dash_app", PYTHON_DIR / "dash-app.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -83,3 +86,12 @@ def test_invalid_spec_returns_message(dash_app):
 
     assert "not_a_column" in str(graph.children)
     assert code == ""
+
+
+def test_api_errors_are_not_shown_to_the_user(dash_app):
+    dash_app.llm = FakeChartModel(responses=["not json, internal details"])
+
+    graph, title, code = dash_app.create_graph(1, "Plot something", "Python")
+
+    assert "unexpected error" in str(graph.children)
+    assert "internal details" not in str(graph.children)
