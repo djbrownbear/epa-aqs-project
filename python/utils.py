@@ -10,16 +10,19 @@ from google.cloud.sql.connector import Connector, IPTypes
 
 from constants import MAX_INPUT_LENGTH, BLOCKED_PATTERNS
 
+
 def save_json_to_file(data, filename="../assets/air_quality_data.json"):
     """Save JSON data to a file."""
     with open(filename, "w") as file:
         json.dump(data, file, indent=4)
+
 
 def load_json_to_dataframe(filename="../assets/air_quality_data.json", record_path=None):
     """Load JSON data from a file into a Pandas DataFrame."""
     with open(filename, "r") as file:
         data = json.load(file)
     return pd.json_normalize(data, record_path=record_path)
+
 
 def mask_api_key_and_email(data):
     """Mask the API key and email address in the 'url' field of the 'Header' section."""
@@ -31,6 +34,7 @@ def mask_api_key_and_email(data):
                 # Mask the email address
                 header["url"] = re.sub(r"(email=)[^&]+", r"\1*****", header["url"])
     return data
+
 
 def format_date_to_yyyymmdd(date_str):
     """Convert a date string to the format 'YYYYMMDD'.
@@ -51,10 +55,11 @@ def format_date_to_yyyymmdd(date_str):
 
     return date_obj.strftime("%Y%m%d")
 
+
 def select_one_option(options, prompt="Select an option: "):
     """
     Display a list of options and prompt the user to select one.
-    
+
     Args:
         options (list): List of tuples (display_name, value).
         prompt (str): Prompt message for user input.
@@ -74,10 +79,11 @@ def select_one_option(options, prompt="Select an option: "):
         except ValueError:
             print("Invalid input. Please enter a number.")
 
+
 def select_multiple_options(options, prompt="Select options (comma-separated numbers): "):
     """
     Display a list of options and prompt the user to select multiple.
-    
+
     Args:
         options (list): List of tuples (display_name, value).
         prompt (str): Prompt message for user input.
@@ -98,8 +104,10 @@ def select_multiple_options(options, prompt="Select options (comma-separated num
         except (ValueError, IndexError):
             print("Invalid input. Please enter numbers corresponding to the options.")
 
+
 def get_code_header_title(selected_language):
     return f'Here is the code to create the graph using {selected_language}:'
+
 
 def get_param_options(param=None, add_all=True, dataframe=None):
     if dataframe is None:
@@ -108,6 +116,7 @@ def get_param_options(param=None, add_all=True, dataframe=None):
     if add_all:
         param_options.insert(0, {'label': 'All', 'value': 'all'})
     return param_options
+
 
 def filter_df(df=None, pollutant=None, counties=None):
     if df is None:
@@ -120,6 +129,7 @@ def filter_df(df=None, pollutant=None, counties=None):
         filtered = filtered[filtered['county'].isin(counties)]
     return filtered
 
+
 def secure_user_input(user_input, system_prompt):
     if len(user_input) > MAX_INPUT_LENGTH:
         return False, "Input too long. Please shorten your request."
@@ -131,8 +141,10 @@ def secure_user_input(user_input, system_prompt):
     sanitized = re.sub(r"```|system:|assistant:|user:", "", user_input, flags=re.IGNORECASE)
     return True, sanitized
 
+
 def is_similar(a, b, threshold=0.8):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio() > threshold
+
 
 def initialize_db_data(engine, inspect, table_name, data_path, connection_type):
     """
@@ -145,6 +157,7 @@ def initialize_db_data(engine, inspect, table_name, data_path, connection_type):
                 csv_df = pd.read_csv(data_path)
                 csv_df.to_sql(table_name, conn, index=False, if_exists="replace", chunksize=1000)
                 print(f"Uploaded data to table '{table_name}'.")
+
 
 def load_air_quality_df(connection_type, engine=None, table_name=None, download=None, cleaned_download=None):
     """
@@ -165,6 +178,7 @@ def load_air_quality_df(connection_type, engine=None, table_name=None, download=
     else:
         raise ValueError("Unsupported connection type specified.")
     return df, cleaned_df
+
 
 def get_db_engine(
     db_type="sqlite",
@@ -203,9 +217,12 @@ def get_db_engine(
         else:
             # Validate required parameters for fallback connection
             if not all([db_user, db_pass, db_host, db_name]):
-                raise ValueError("db_user, db_pass, db_host, and db_name must be provided for PostgreSQL fallback connection.")
+                raise ValueError(
+                    "db_user, db_pass, db_host, and db_name must be provided for PostgreSQL fallback connection."
+                )
             db_url = f"postgresql+psycopg2://{db_user}:{db_pass}@{db_host}/{db_name}"
             return sqlalchemy.create_engine(db_url)
+
 
 def get_cloud_sql_creator(
     connector,
@@ -232,4 +249,3 @@ def get_cloud_sql_creator(
         )
         return conn
     return getconn
-

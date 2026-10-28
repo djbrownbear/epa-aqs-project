@@ -2,7 +2,9 @@ import requests
 import os
 from dotenv import load_dotenv
 from datetime import datetime as dt
-from utils import save_json_to_file, load_json_to_dataframe, mask_api_key_and_email, select_one_option, select_multiple_options
+from utils import (
+    save_json_to_file, load_json_to_dataframe, mask_api_key_and_email, select_one_option, select_multiple_options,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,7 +23,8 @@ services_list = [
   ("Quality Assurance - PEP Audits", "qaPepAudits"),
   ("Transaction Sample - AQS Submission data in transaction Format (RD)", "transactionsSample"),
   ("Quality Assurance - Annual Performance Evaluations", "qaAnnualPerformanceEvaluations"),
-  ("Quality Assurance - Annual Performance Evaluations in the AQS Submission transaction format (RD)", "qaAnnualPerformanceEvaluationsTransaction"),
+  ("Quality Assurance - Annual Performance Evaluations in the AQS Submission transaction format (RD)",
+   "qaAnnualPerformanceEvaluationsTransaction"),
   ("List of valid values for data entry elsewhere", "list")
 ]
 
@@ -46,6 +49,7 @@ pollutants = [
     ("Lead PM10 LC FRM/FEM", 85129),
     ("PM2.5 - Local Conditions", 88101)
 ]
+
 
 def get_air_quality_data(
     service="annualData",
@@ -117,6 +121,7 @@ def get_air_quality_data(
         print("Response:", response.text)
         return None
 
+
 def format_date_to_yyyymmdd(date_str):
     """Convert a date string to the format 'YYYYMMDD'.
     Accepts formats like 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.
@@ -135,6 +140,7 @@ def format_date_to_yyyymmdd(date_str):
             raise ValueError("Date format must be 'YYYY-MM-DD', 'MM-DD-YYYY', 'YYYY/MM/DD', or 'MM/DD/YYYY'.")
 
     return date_obj.strftime("%Y%m%d")
+
 
 def main():
     service = select_one_option(services_list, prompt="Select a service:")
@@ -170,6 +176,7 @@ def main():
         print(df.head())
     else:
         print("No data retrieved.")
+
 
 if __name__ == "__main__":
     main()

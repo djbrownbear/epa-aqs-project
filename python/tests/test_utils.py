@@ -3,6 +3,7 @@ import json
 import os
 from utils import mask_api_key_and_email, format_date_to_yyyymmdd, save_json_to_file, load_json_to_dataframe
 
+
 class TestUtils(unittest.TestCase):
     def test_mask_api_key_and_email(self):
         data = {
@@ -56,6 +57,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(df), 2)
         self.assertListEqual(list(df.columns), ["column1", "column2"])
         os.remove(file_path)  # Clean up the test file
+
 
 if __name__ == "__main__":
     unittest.main()

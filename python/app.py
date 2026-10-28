@@ -29,7 +29,7 @@ with open(csv_filename, "r") as file:
     data = pd.read_csv(file, dtype=dtypes).to_dict(orient="records")
 
 with open(json_filename, "r") as f:
- json_data = json.load(f)
+    json_data = json.load(f)
 
 data_section = json_data.get("Data", [])
 
@@ -42,7 +42,7 @@ else:
 
 df.dropna(subset=["arithmetic_mean"], inplace=True)
 
-grouped_df = df.groupby(['date','county','parameter']).agg({
+grouped_df = df.groupby(['date', 'county', 'parameter']).agg({
     'arithmetic_mean': 'mean',
     'local_site_name': 'first',
     'city': 'first',
@@ -81,6 +81,8 @@ app.layout = html.Div([
 ])
 
 # Callback to update the time-series graph based on selected pollutant
+
+
 @app.callback(
     Output("time-series-graph", "figure"),
     [Input("pollutant-dropdown", "value")]
@@ -99,6 +101,8 @@ def update_time_series(selected_pollutant):
     return fig
 
 # Callback to update the map based on selected pollutant
+
+
 @app.callback(
     Output("map-graph", "figure"),
     [Input("pollutant-dropdown", "value")]
@@ -118,6 +122,7 @@ def update_map(selected_pollutant):
         mapbox_style="open-street-map"
     )
     return fig
+
 
 # Run the app
 if __name__ == "__main__":

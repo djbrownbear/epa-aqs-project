@@ -208,7 +208,10 @@ app.layout = html.Div(
                         ),
                         dcc.Textarea(
                             id="user-input",
-                            placeholder='Enter your graph request here... (e.g., "Line chart of average lead levels by quarter for each county")',
+                            placeholder=(
+                                'Enter your graph request here... '
+                                '(e.g., "Line chart of average lead levels by quarter for each county")'
+                            ),
                             className="input-field",
                             style={
                                 "width": "100%",
@@ -250,7 +253,8 @@ app.layout = html.Div(
                                         id="output-div",
                                         children=[
                                             html.Div(
-                                                "Visualization will appear here. Submit a request to generate a visualization.",
+                                                "Visualization will appear here. "
+                                                "Submit a request to generate a visualization.",
                                                 className="loading-text",
                                             )
                                         ],
@@ -442,7 +446,10 @@ def update_time_series(selected_pollutant, selected_county):
             x="date",
             y="arithmetic_mean",
             color="county",
-            title=f"Sample Measurement Over Time (Count{'ies' if len(selected_county) > 1 else 'y'}: {', '.join(selected_county)})",
+            title=(
+                "Sample Measurement Over Time "
+                f"(Count{'ies' if len(selected_county) > 1 else 'y'}: {', '.join(selected_county)})"
+            ),
         )
 
     # Mobile-friendly layout adjustments
@@ -488,7 +495,10 @@ def update_distribution(selected_pollutant, selected_county):
             filtered,
             x="arithmetic_mean",
             nbins=50,
-            title=f"Distribution of Sample Measurement (Count{'ies' if len(selected_county) > 1 else 'y'}: {', '.join(selected_county)})",
+            title=(
+                "Distribution of Sample Measurement "
+                f"(Count{'ies' if len(selected_county) > 1 else 'y'}: {', '.join(selected_county)})"
+            ),
         )
 
     # Mobile-friendly layout adjustments
