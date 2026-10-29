@@ -161,6 +161,20 @@ app = dash.Dash(__name__)
 server = app.server  # Expose the server variable for deployments
 app.title = "Air Quality Dashboard"
 
+# Dash answers every unknown path with the app page, so robots.txt needs its own route.
+ROBOTS_TXT = """User-agent: 360Spider
+Disallow: /
+
+User-agent: *
+Disallow: /_dash-update-component
+"""
+
+
+@server.route("/robots.txt")
+def robots_txt():
+    return ROBOTS_TXT, 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+
 app.layout = html.Div(
     [
         # Header Section
