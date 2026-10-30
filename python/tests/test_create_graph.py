@@ -88,6 +88,16 @@ def test_invalid_spec_returns_message(dash_app):
     assert code == ""
 
 
+@pytest.mark.parametrize("user_input", [None, "", "   "])
+def test_empty_request_returns_message(dash_app, user_input):
+    dash_app.llm = FakeChartModel(responses=["not used"])
+
+    graph, title, code = dash_app.create_graph(1, user_input, "Python")
+
+    assert "Please enter a graph request" in str(graph.children)
+    assert code == ""
+
+
 def test_api_errors_are_not_shown_to_the_user(dash_app):
     dash_app.llm = FakeChartModel(responses=["not json, internal details"])
 

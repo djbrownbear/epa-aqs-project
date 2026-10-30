@@ -578,6 +578,9 @@ def create_graph(_, user_input, selected_language):
     if not selected_language:
         selected_language = "Python"
 
+    if not user_input or not user_input.strip():
+        return html.Div("Please enter a graph request.", style={"color": "red"}), "", ""
+
     prompt_str = prompt.format_messages(
         columns=columns_description,
         data=csv_string,
