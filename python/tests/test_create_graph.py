@@ -48,6 +48,53 @@ def dash_app(tmp_path_factory):
                 os.environ[k] = v
 
 
+@pytest.fixture(autouse=True)
+def fresh_limiter(dash_app):
+    from rate_limit import RateLimiter
+
+    dash_app.gemini_limiter = RateLimiter(per_client=2, window_seconds=60, daily_limit=100)
+
+
+class CountingChartModel(FakeChartModel):
+    calls: int = 0
+
+    def _call(self, *args, **kwargs):
+        self.calls += 1
+        return super()._call(*args, **kwargs)
+
+
+SPEC = json.dumps({"chart_type": "line", "x": "date", "y": "arithmetic_mean"})
+
+
+def test_rate_limited_requests_do_not_reach_the_model(dash_app):
+    dash_app.llm = CountingChartModel(responses=[SPEC])
+
+    for _ in range(2):
+        dash_app.create_graph(1, "Line chart of lead", "Python")
+    graph, title, code = dash_app.create_graph(1, "Line chart of lead", "Python")
+
+    assert "Too many requests" in str(graph.children)
+    assert code == ""
+    assert dash_app.llm.calls == 2
+
+
+def test_rate_limit_is_per_client_ip(dash_app):
+    dash_app.llm = CountingChartModel(responses=[SPEC])
+
+    def call_from(ip):
+        with dash_app.app.server.test_request_context(headers={"X-Real-IP": ip}):
+            return dash_app.create_graph(1, "Line chart of lead", "Python")
+
+    call_from("203.0.113.1")
+    call_from("203.0.113.1")
+    blocked, _, _ = call_from("203.0.113.1")
+    allowed, _, _ = call_from("203.0.113.2")
+
+    assert "Too many requests" in str(blocked.children)
+    assert allowed.figure is not None
+    assert dash_app.llm.calls == 3
+
+
 def test_llm_output_is_never_executed(dash_app, tmp_path):
     marker = tmp_path / "executed"
     reply = f"```python\nopen({str(marker)!r}, 'w').close()\nfig = None\n```"

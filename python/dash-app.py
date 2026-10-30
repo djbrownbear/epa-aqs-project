@@ -5,6 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import dash
 from dash import dcc, html, Input, Output, State
 import plotly.express as px
+from flask import has_request_context, request
 import pandas as pd
 from pathlib import Path
 
@@ -16,7 +17,13 @@ from utils import (
     secure_user_input,
     get_db_engine,
 )
-from constants import GEMINI_API_KEY, CONNECTION_TYPE
+from constants import (
+    GEMINI_API_KEY,
+    CONNECTION_TYPE,
+    GEMINI_REQUESTS_PER_MINUTE,
+    GEMINI_DAILY_LIMIT,
+)
+from rate_limit import RateLimiter
 from chart_spec import (
     ChartSpec,
     ChartSpecError,
@@ -132,6 +139,17 @@ csv_string = df_5_rows.to_csv(index=False)
 columns_description = describe_dataframe(cleaned_df)
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
+gemini_limiter = RateLimiter(
+    per_client=GEMINI_REQUESTS_PER_MINUTE, window_seconds=60, daily_limit=GEMINI_DAILY_LIMIT
+)
+
+
+def client_id():
+    """The caller's IP. PythonAnywhere's proxy puts it in X-Real-IP."""
+    if not has_request_context():
+        return "local"
+    return request.headers.get("X-Real-IP") or request.remote_addr or "unknown"
+
 
 # The model only fills in a ChartSpec; the app builds the figure and the code shown to
 # the user from it, so nothing the model returns is executed.
@@ -596,6 +614,10 @@ def create_graph(_, user_input, selected_language):
             "",
             "",
         )
+
+    limit_message = gemini_limiter.check(client_id())
+    if limit_message:
+        return html.Div(limit_message, style={"color": "red"}), "", ""
 
     chain = prompt | llm.with_structured_output(ChartSpec, method="json_schema")
     try:
