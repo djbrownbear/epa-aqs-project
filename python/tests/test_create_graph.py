@@ -152,3 +152,11 @@ def test_api_errors_are_not_shown_to_the_user(dash_app):
 
     assert "unexpected error" in str(graph.children)
     assert "internal details" not in str(graph.children)
+
+
+def test_robots_txt_is_plain_text(dash_app):
+    response = dash_app.app.server.test_client().get("/robots.txt")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/plain"
+    assert "Disallow: /_dash-update-component" in response.get_data(as_text=True)
