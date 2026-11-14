@@ -160,3 +160,8 @@ def test_robots_txt_is_plain_text(dash_app):
     assert response.status_code == 200
     assert response.mimetype == "text/plain"
     assert "Disallow: /_dash-update-component" in response.get_data(as_text=True)
+
+
+def test_model_is_not_the_retiring_gemini_2_5_flash(dash_app):
+    # gemini-2.5-flash is rerouted to gemini-3.5-flash-lite on 2026-12-01; call it by name.
+    assert dash_app.llm.model.removeprefix("models/") == "gemini-3.5-flash-lite"
