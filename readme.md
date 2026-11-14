@@ -34,7 +34,7 @@ The model never writes code that the app runs. It fills in a `ChartSpec` (chart 
 | Area | Tools |
 |------|-------|
 | App | Python, Dash, Plotly |
-| AI | Gemini 2.5 Flash via LangChain (`langchain-google-genai`), Pydantic structured output |
+| AI | Gemini (`gemini-3.5-flash-lite` by default, `GEMINI_MODEL` to override) via LangChain (`langchain-google-genai`), Pydantic structured output |
 | Data | pandas, SQLAlchemy, SQLite / MySQL / Cloud SQL (PostgreSQL) |
 | Data collection | EPA AQS API, Python `requests`, R (`RAQSAPI`) |
 | Hosting | PythonAnywhere |

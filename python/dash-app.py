@@ -19,6 +19,7 @@ from utils import (
 )
 from constants import (
     GEMINI_API_KEY,
+    GEMINI_MODEL,
     CONNECTION_TYPE,
     GEMINI_REQUESTS_PER_MINUTE,
     GEMINI_DAILY_LIMIT,
@@ -138,7 +139,7 @@ df_5_rows = cleaned_df.head()
 csv_string = df_5_rows.to_csv(index=False)
 columns_description = describe_dataframe(cleaned_df)
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GEMINI_API_KEY)
+llm = ChatGoogleGenerativeAI(model=GEMINI_MODEL, google_api_key=GEMINI_API_KEY)
 gemini_limiter = RateLimiter(
     per_client=GEMINI_REQUESTS_PER_MINUTE, window_seconds=60, daily_limit=GEMINI_DAILY_LIMIT
 )
@@ -200,7 +201,7 @@ app.layout = html.Div(
             [
                 html.H1("Air Quality Data Dashboard"),
                 html.H2(
-                    "Using Gemini-2.5 to Generate Visualizations from Natural Language"
+                    "Using Gemini to Generate Visualizations from Natural Language"
                 ),
                 html.P(
                     "Interactively explore air quality data and generate custom visualizations using natural language."

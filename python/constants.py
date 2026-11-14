@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Chart model. gemini-2.5-flash is rerouted to gemini-3.5-flash-lite on 2026-12-01.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.5-flash-lite"
 CONNECTION_TYPE = os.getenv("DB_CONNECTION_TYPE", "mysql")
 MODE = os.getenv("MODE", "development").lower()  # "development" or "production"
 MAX_INPUT_LENGTH = 1000

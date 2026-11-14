@@ -55,6 +55,14 @@ def fresh_limiter(dash_app):
     dash_app.gemini_limiter = RateLimiter(per_client=2, window_seconds=60, daily_limit=100)
 
 
+@pytest.fixture(autouse=True)
+def restore_llm(dash_app):
+    # Tests swap in fake models; put the real one back for the next test.
+    real_llm = dash_app.llm
+    yield
+    dash_app.llm = real_llm
+
+
 class CountingChartModel(FakeChartModel):
     calls: int = 0
 
