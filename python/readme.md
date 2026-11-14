@@ -24,6 +24,8 @@ GEMINI_API_KEY=your-key
 DB_CONNECTION_TYPE=sqlite
 ```
 
+The chart builder uses `gemini-3.5-flash-lite`. Set `GEMINI_MODEL` to use a different Gemini model.
+
 Load the sample data into `epa_aqs_data.db` (once), then start the app from the `python` directory:
 
 ```bash

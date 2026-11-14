@@ -55,6 +55,14 @@ def fresh_limiter(dash_app):
     dash_app.gemini_limiter = RateLimiter(per_client=2, window_seconds=60, daily_limit=100)
 
 
+@pytest.fixture(autouse=True)
+def restore_llm(dash_app):
+    # Tests swap in fake models; put the real one back for the next test.
+    real_llm = dash_app.llm
+    yield
+    dash_app.llm = real_llm
+
+
 class CountingChartModel(FakeChartModel):
     calls: int = 0
 
@@ -160,3 +168,8 @@ def test_robots_txt_is_plain_text(dash_app):
     assert response.status_code == 200
     assert response.mimetype == "text/plain"
     assert "Disallow: /_dash-update-component" in response.get_data(as_text=True)
+
+
+def test_model_is_not_the_retiring_gemini_2_5_flash(dash_app):
+    # gemini-2.5-flash is rerouted to gemini-3.5-flash-lite on 2026-12-01; call it by name.
+    assert dash_app.llm.model.removeprefix("models/") == "gemini-3.5-flash-lite"
